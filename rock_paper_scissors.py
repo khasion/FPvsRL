@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Define the payoff matrix for Rock-Paper-Scissors
 PAYOFF_MATRIX = np.array([
@@ -74,3 +75,21 @@ print("Results after", episodes, "episodes:")
 print(f"Fictitious Play wins: {fp_wins}")
 print(f"Q-Learning wins: {ql_wins}")
 print(f"Draws: {draws}")
+
+# Data For Prisoners Dilemma
+results = {
+    "Fictitious Play Wins": fp_wins,
+    "Q-Learning Wins": ql_wins,
+    "Draws": draws
+}
+
+# Output Figures
+plt.figure(figsize=(8, 5))
+plt.bar(list(results.keys()), list(results.values()), color=['blue', 'green', 'gray'])
+plt.title("Results for Rock-Paper-Scissors")
+plt.ylabel("Count")
+plt.tight_layout()
+plt.savefig("rps_results.png")
+plt.close()
+
+print("Figures generated and saved as 'rps_results.png'.")

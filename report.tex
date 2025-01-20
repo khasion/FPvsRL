@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage{graphicx}
+
+\title{Report on Game Simulation Results}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section*{Introduction}
+This report summarizes the results of simulations for two strategic games: Rock-Paper-Scissors and Prisoner's Dilemma. The simulations compare the performance of two algorithms, Fictitious Play (FP) and Q-Learning (QL), over 1000 episodes each. Key metrics include the number of wins for each algorithm and the number of draws.
+
+\section*{Results}
+
+\subsection*{Rock-Paper-Scissors}
+\begin{itemize}
+    \item \textbf{Total Episodes:} 1000
+    \item \textbf{Fictitious Play Wins:} 90
+    \item \textbf{Q-Learning Wins:} 389
+    \item \textbf{Draws:} 521
+\end{itemize}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.8\textwidth]{rps_results.png}
+\caption{Results for Rock-Paper-Scissors}
+\end{figure}
+
+\subsection*{Prisoner's Dilemma}
+\begin{itemize}
+    \item \textbf{Total Episodes:} 1000
+    \item \textbf{Fictitious Play Wins:} 98
+    \item \textbf{Q-Learning Wins:} 200
+    \item \textbf{Draws:} 702
+\end{itemize}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.8\textwidth]{prisoners_results.png}
+\caption{Results for Prisoner's Dilemma}
+\end{figure}
+
+\section*{Discussion}
+The results highlight key differences in the performance of the algorithms across the two games. In Rock-Paper-Scissors, Q-Learning significantly outperforms Fictitious Play, while in Prisoner's Dilemma, the difference is less pronounced. The number of draws is higher in the Prisoner's Dilemma, indicating potential equilibria between strategies.
+
+\section*{Conclusion}
+These simulations provide insights into the behavior of Fictitious Play and Q-Learning in strategic games. Future work could involve extending the analysis to more complex games and incorporating additional metrics such as convergence speed.
+
+\end{document}
