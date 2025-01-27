@@ -13,13 +13,13 @@ RPS_RES = rps_results.png
 
 all: $(PRISONERS_RES) $(RPS_RES) $(REPORT_PDF)
 
-$(PRISONERS_RES):
+$(PRISONERS_RES): $(PRISONERS_PY)
 	python3 $(PRISONERS_PY)
 
-$(RPS_RES):
+$(RPS_RES): $(RPS_PY)
 	python3 $(RPS_PY)
 
-$(REPORT_PDF):
+$(REPORT_PDF): $(REPORT_TEX)
 	pdflatex report.tex
 
 clean:

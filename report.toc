@@ -1,0 +1,9 @@
+\contentsline {section}{\numberline {1}Introduction}{2}{}%
+\contentsline {section}{\numberline {2}Definitions}{2}{}%
+\contentsline {subsection}{\numberline {2.1}Fictitious Play}{2}{}%
+\contentsline {subsection}{\numberline {2.2}Reinforcement Learning}{2}{}%
+\contentsline {subsection}{\numberline {2.3}Zero-Sum Repeated Games}{3}{}%
+\contentsline {section}{\numberline {3}Rock-Paper-Scissors}{3}{}%
+\contentsline {section}{\numberline {4}Prisoners Dilemma}{3}{}%
+\contentsline {section}{\numberline {5}Methodologies}{3}{}%
+\contentsline {section}{\numberline {6}Results}{3}{}%

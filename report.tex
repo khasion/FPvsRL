@@ -8,19 +8,58 @@
 \begin{document}
 
 \maketitle
+\tableofcontents
+\pagebreak
 
-\section*{Introduction}
+\section{Introduction}
 This report summarizes the results of simulations for two strategic games: Rock-Paper-Scissors and Prisoner's Dilemma. The simulations compare the performance of two algorithms, Fictitious Play (FP) and Q-Learning (QL), over 1000 episodes each. Key metrics include the number of wins for each algorithm and the number of draws.
 
-\section*{Results}
+\section{Definitions}
 
-\subsection*{Rock-Paper-Scissors}
+\subsection{Fictitious Play}
+Fictitious play is a learning process in game theory where each player assumes that their opponent(s) will continue to use strategies based on past behavior. Over repeated plays, each player updates their beliefs about the opponent’s strategy by observing the frequencies of their past actions.
+
 \begin{itemize}
-    \item \textbf{Total Episodes:} 1000
-    \item \textbf{Fictitious Play Wins:} 90
-    \item \textbf{Q-Learning Wins:} 389
-    \item \textbf{Draws:} 521
+    \item \textbf{Key Idea:} Players choose their best response to the empirical distribution of their opponents’ strategies.
+    \item \textbf{Example:} In a two-player game, if Player A notices that Player B plays "Rock" 70\% of the time in Rock-Paper-Scissors, Player A may adjust their strategy to play "Paper" more frequently to exploit this pattern.
 \end{itemize}
+
+\subsection{Reinforcement Learning}
+Reinforcement learning (RL) is a type of machine learning where an agent learns to make decisions by interacting with an environment to maximize cumulative rewards. The agent explores various actions and receives feedback (rewards or penalties) to improve its strategy over time.
+
+\begin{itemize}
+    \item \textbf{Key Components:}
+    \begin{itemize}
+        \item \textbf{Agent:} The decision-maker.
+        \item \textbf{Environment:} The system the agent interacts with.
+        \item \textbf{State:} The current context or situation of the agent.
+        \item \textbf{Action:} The choice made by the agent.
+        \item \textbf{Reward:} Feedback received for a given action.
+    \end{itemize}
+    \item \textbf{Example:} A robot learning to navigate a maze by receiving positive rewards for moving closer to the exit and penalties for hitting walls.
+\end{itemize}
+
+\subsection{Zero-Sum Repeated Games}
+Zero-sum repeated games are games where two or more players repeatedly interact, and the total payoff for all players in each round is zero—one player's gain is exactly equal to the other's loss. Over multiple rounds, players may adjust their strategies based on the history of play to optimize their outcomes.
+
+\begin{itemize}
+    \item \textbf{Key Characteristics:}
+    \begin{itemize}
+        \item \textbf{Zero-Sum:} The sum of all players’ payoffs is always zero.
+        \item \textbf{Repetition:} The game is played multiple times, allowing players to adapt their strategies.
+        \item \textbf{Stochastic Variations:} Some versions include probabilistic changes in payoffs or states between rounds.
+    \end{itemize}
+    \item \textbf{Example:} Chess and poker can be modeled as zero-sum repeated games where one player’s victory is the other’s loss.
+\end{itemize}
+
+\section{Rock-Paper-Scissors}
+
+\section{Prisoners Dilemma}
+
+\section{Methodologies}
+
+
+\section{Results}
 
 \begin{figure}[h!]
 \centering
@@ -29,12 +68,6 @@ This report summarizes the results of simulations for two strategic games: Rock-
 \end{figure}
 
 \subsection*{Prisoner's Dilemma}
-\begin{itemize}
-    \item \textbf{Total Episodes:} 1000
-    \item \textbf{Fictitious Play Wins:} 98
-    \item \textbf{Q-Learning Wins:} 200
-    \item \textbf{Draws:} 702
-\end{itemize}
 
 \begin{figure}[h!]
 \centering
