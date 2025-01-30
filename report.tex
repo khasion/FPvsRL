@@ -1,84 +1,114 @@
 \documentclass{article}
 \usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage[colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue]{hyperref}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{float}
+\usepackage[legalpaper, margin=3cm]{geometry}
 
-\title{Report on Game Simulation Results}
-\author{}
-\date{}
+\title{Comparing Fictitious Play and Q-Learning in Stochastic Zero-Sum Games}
+\author{Ioannis Kasionis \and Ioannis Koutsoukis}
+\date{\today}
 
 \begin{document}
-
 \maketitle
 \tableofcontents
 \pagebreak
 
-\section{Introduction}
-This report summarizes the results of simulations for two strategic games: Rock-Paper-Scissors and Prisoner's Dilemma. The simulations compare the performance of two algorithms, Fictitious Play (FP) and Q-Learning (QL), over 1000 episodes each. Key metrics include the number of wins for each algorithm and the number of draws.
-
-\section{Definitions}
-
-\subsection{Fictitious Play}
-Fictitious play is a learning process in game theory where each player assumes that their opponent(s) will continue to use strategies based on past behavior. Over repeated plays, each player updates their beliefs about the opponent’s strategy by observing the frequencies of their past actions.
-
+\section{Theoretical Background}
+\subsection{Repeated \& Zero-Sum Stochastic Games}
+Zero-sum games satisfy $\pi_1 + \pi_2 = 0$ where $\pi_i$ are player payoffs. Our stochastic version adds:
 \begin{itemize}
-    \item \textbf{Key Idea:} Players choose their best response to the empirical distribution of their opponents’ strategies.
-    \item \textbf{Example:} In a two-player game, if Player A notices that Player B plays "Rock" 70\% of the time in Rock-Paper-Scissors, Player A may adjust their strategy to play "Paper" more frequently to exploit this pattern.
+\item Action selection randomness (10\% exploration rate)
+\item Gaussian payoff noise: $\mathcal{N}(0,\sigma^2)$ with $\sigma^2=0.1$ (RPS), $\sigma^2=0.5$ (PD)
 \end{itemize}
 
-\subsection{Reinforcement Learning}
-Reinforcement learning (RL) is a type of machine learning where an agent learns to make decisions by interacting with an environment to maximize cumulative rewards. The agent explores various actions and receives feedback (rewards or penalties) to improve its strategy over time.
+\subsection{Fictitious Play (FP)}
+Players form beliefs about opponents' strategies using:
+\begin{equation}
+\sigma_i^t(a_{-i}) = \frac{N(a_{-i}) + 1}{t + n_{\text{actions}}}
+\end{equation}
+where $N(a_{-i})$ counts opponent's past actions.
 
+\subsection{Reinforcement Learning (Q-Learning)}
+Agents learn action values through temporal difference updates:
+\begin{equation}
+Q(a) \leftarrow Q(a) + \alpha\left[r + \gamma \max_{a'}Q(a') - Q(a)\right]
+\end{equation}
+
+\subsubsection{Q-Learning with $\epsilon$-Decay}
+Modified exploration schedule:
+\begin{equation}
+\epsilon_{t+1} = \max\left(\epsilon_{\min}, \epsilon_t \cdot e^{-\lambda t}\right)
+\end{equation}
+with $\epsilon_{\min}=0.1$, initial $\epsilon_0=1.0$, decay rate $\lambda=0.001$.
+
+\section{Modified Games Implementation}
+\subsection{Stochastic Rock-Paper-Scissors}
 \begin{itemize}
-    \item \textbf{Key Components:}
-    \begin{itemize}
-        \item \textbf{Agent:} The decision-maker.
-        \item \textbf{Environment:} The system the agent interacts with.
-        \item \textbf{State:} The current context or situation of the agent.
-        \item \textbf{Action:} The choice made by the agent.
-        \item \textbf{Reward:} Feedback received for a given action.
-    \end{itemize}
-    \item \textbf{Example:} A robot learning to navigate a maze by receiving positive rewards for moving closer to the exit and penalties for hitting walls.
+\item Asymmetric payoff noise $\mathcal{N}(0,0.1)$
+\item $\epsilon$-decay schedule: 0.9995 decay factor
+\item Tracking: 100-episode moving averages
 \end{itemize}
 
-\subsection{Zero-Sum Repeated Games}
-Zero-sum repeated games are games where two or more players repeatedly interact, and the total payoff for all players in each round is zero—one player's gain is exactly equal to the other's loss. Over multiple rounds, players may adjust their strategies based on the history of play to optimize their outcomes.
-
+\subsection{Zero-Sum Prisoner's Dilemma}
 \begin{itemize}
-    \item \textbf{Key Characteristics:}
-    \begin{itemize}
-        \item \textbf{Zero-Sum:} The sum of all players’ payoffs is always zero.
-        \item \textbf{Repetition:} The game is played multiple times, allowing players to adapt their strategies.
-        \item \textbf{Stochastic Variations:} Some versions include probabilistic changes in payoffs or states between rounds.
-    \end{itemize}
-    \item \textbf{Example:} Chess and poker can be modeled as zero-sum repeated games where one player’s victory is the other’s loss.
+\item Zero-sum conversion: $\pi_{\text{col}} = -\pi_{\text{row}}$
+\item Action persistence: 15\% chance to repeat previous action
 \end{itemize}
 
-\section{Rock-Paper-Scissors}
-
-\section{Prisoners Dilemma}
-
-\section{Methodologies}
-
-
-\section{Results}
-
-\begin{figure}[h!]
+\section{Experimental Results Analysis}
+\subsection{Strategy Evolution}
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.8\textwidth]{rps_results.png}
-\caption{Results for Rock-Paper-Scissors}
+\includegraphics[width=0.75\textwidth]{rps_fp_strategy.png}
+\caption{FP strategy convergence in RPS (Nash equilibrium at 33\% each action). Early oscillations reflect adaptation to QL's exploration phase.}
+\label{fig:fp_strat}
 \end{figure}
 
-\subsection*{Prisoner's Dilemma}
-
-\begin{figure}[h!]
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.8\textwidth]{prisoners_results.png}
-\caption{Results for Prisoner's Dilemma}
+\includegraphics[width=0.75\textwidth]{rps_ql_strategy.png}
+\caption{QL action selection in RPS showing $\epsilon$-decay effects: initial exploration (0-500 episodes) followed by strategy specialization.}
+\label{fig:ql_strat}
 \end{figure}
 
-\section*{Discussion}
-The results highlight key differences in the performance of the algorithms across the two games. In Rock-Paper-Scissors, Q-Learning significantly outperforms Fictitious Play, while in Prisoner's Dilemma, the difference is less pronounced. The number of draws is higher in the Prisoner's Dilemma, indicating potential equilibria between strategies.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{pd_behavior.png}
+\caption{PD behavior: FP's increasing defect probability vs QL's preference for defection (Q1-Q0 $>$ 0). Mutual defection emerges as dominant strategy.}
+\label{fig:pd_behavior}
+\end{figure}
 
-\section*{Conclusion}
-These simulations provide insights into the behavior of Fictitious Play and Q-Learning in strategic games. Future work could involve extending the analysis to more complex games and incorporating additional metrics such as convergence speed.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{pd_rewards.png}
+\caption{PD reward divergence: QL's exploitation of defection strategy yields 18\% higher average rewards than FP.}
+\label{fig:pd_rewards}
+\end{figure}
+
+\subsection{Cumulative Performance}
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{rps_cumulative.png}
+\caption{RPS cumulative scores: QL maintains $\sim$4\% advantage through mid-game ($\Delta=82$ points at episode 1500).}
+\label{fig:rps_cum}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.75\textwidth]{pd_cumulative.png}
+\caption{PD cumulative rewards: QL's strategy yields 23.7\% higher cumulative reward than FP by episode 2000.}
+\label{fig:pd_cum}
+\end{figure}
+
+\section{Conclusion}
+Key findings:
+\begin{itemize}
+\item FP's interpretability vs QL's speed: FP reveals opponent modeling (Fig. \ref{fig:fp_strat}), while QL converges faster (Fig. \ref{fig:rps_rewards})
+\item Exploration-decay matters: QL's strategy specialization (Fig. \ref{fig:ql_strat}) directly correlates with $\epsilon$ schedule
+\item Game structure dominance: PD's dominant strategy (Fig. \ref{fig:pd_cum}) overpowers RPS's balanced equilibrium (Fig. \ref{fig:rps_cum})
+\end{itemize}
 
 \end{document}
