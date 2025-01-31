@@ -14,7 +14,7 @@ def get_payoff(action_row, action_col):
 
 class FictitiousPlay:
     def __init__(self, n_actions):
-        self.n_actions = n_actions # 0: Rock, 1: Paper, 2: Scissors
+        self.n_actions = n_actions # 0: Cooperate, 1: Defect
         self.strategy = np.ones(n_actions) / n_actions
         self.history = np.zeros(n_actions)
         self.strategy_history = []
@@ -145,7 +145,7 @@ plt.close()
 # Behavior
 plt.figure(figsize=(12, 6))
 plt.plot(moving_average(np.mean(all_fp_defections, axis=0)), label='FP Defect Probability')
-plt.plot(moving_average(np.mean(all_ql_defections, axis=0)), label='QL Defect Tendency (Q1-Q0)')
+plt.plot(moving_average(np.mean(all_ql_defections, axis=0)), label='QL Defect Probability')
 plt.title("Defection Behavior Over Time")
 plt.xlabel("Episode")
 plt.ylabel("Defect Metric")

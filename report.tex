@@ -27,7 +27,7 @@ Zero-sum games satisfy $\pi_1 + \pi_2 = 0$ where $\pi_i$ are player payoffs. Our
 \subsection{Fictitious Play (FP)}
 Players form beliefs about opponents' strategies using:
 \begin{equation}
-\sigma_i^t(a_{-i}) = \frac{N(a_{-i}) + 1}{t + n_{\text{actions}}}
+\sigma_i^t = \frac{N(a_{-i})}{\sum_{a'}{N(a')}}
 \end{equation}
 where $N(a_{-i})$ counts opponent's past actions.
 
@@ -40,9 +40,9 @@ Q(a) \leftarrow Q(a) + \alpha\left[r + \gamma \max_{a'}Q(a') - Q(a)\right]
 \subsubsection{Q-Learning with $\epsilon$-Decay}
 Modified exploration schedule:
 \begin{equation}
-\epsilon_{t+1} = \max\left(\epsilon_{\min}, \epsilon_t \cdot e^{-\lambda t}\right)
+\epsilon_{t+1} = \max\left(\epsilon_{\min}, \epsilon_t \cdot decayrate\right)
 \end{equation}
-with $\epsilon_{\min}=0.1$, initial $\epsilon_0=1.0$, decay rate $\lambda=0.001$.
+with $\epsilon_{\min}=0.1$, initial $\epsilon_0=1.0$, $decayrate=0.999$.
 
 \section{Modified Games Implementation}
 \subsection{Stochastic Rock-Paper-Scissors}
@@ -54,8 +54,8 @@ with $\epsilon_{\min}=0.1$, initial $\epsilon_0=1.0$, decay rate $\lambda=0.001$
 
 \subsection{Zero-Sum Prisoner's Dilemma}
 \begin{itemize}
+\item Asymmetric payoff noise $\mathcal{N}(0,0.5)$
 \item Zero-sum conversion: $\pi_{\text{col}} = -\pi_{\text{row}}$
-\item Action persistence: 15\% chance to repeat previous action
 \end{itemize}
 
 \section{Experimental Results Analysis}
