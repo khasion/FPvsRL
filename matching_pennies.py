@@ -1,28 +1,34 @@
 #!/usr/bin/env python
 """
-Comparison of All Pairwise Combinations of Agents:
+Comparison of All Pairwise Combinations of Agents in Repeated Matching Pennies
+
+This script defines a non–stochastic Matching Pennies game and four agent types:
     - Fictitious Play (FP)
     - Q–Learning (QL)
     - Minimax RL (MM)
     - Belief–Based (BP)
 
-This script defines a stochastic Rock–Paper–Scissors game (with two states)
-and four agent types. It then runs a series of experiments comparing every pair
-of agents and produces a suite of plots for each comparison:
+The game is repeated with a fixed payoff matrix:
+    For the row (player 1), the payoff matrix is:
+         [[ 1, -1],
+          [-1,  1]]
+    (Player 2’s payoff is the negative of player 1’s.)
+
+Each experiment runs a match between two agents over many episodes and trials.
+For every pairwise combination, we produce the following plots:
     a. Moving Average Rewards
     b. Cumulative Scores
-    c. Environment State Evolution
-    d. Joint Action Frequency (Heatmap)
+    c. Environment State Evolution (here the state is fixed)
+    d. Joint Action Frequency Heatmap
     e. Reward Distribution (with error bars)
-
-Additionally, when applicable:
-    f. Policy Evolution (for agents that record a strategy; e.g. FP)
+And, when available:
+    f. Policy Evolution (for agents that record a strategy, e.g. FP)
     g. Epsilon Decay (for agents using ε–greedy, e.g. QL and MM)
-    h. Q–Value Evolution and Convergence (for agents with Q–tables)
+    h. Q–Value Evolution and Convergence
 
-Each experiment’s plots are saved with filenames that include the experiment name.
+Plots are saved in the "plots" folder.
 
-Make sure to install the required packages:
+Required packages:
     pip install numpy matplotlib scipy seaborn
 """
 
@@ -32,42 +38,30 @@ from scipy.optimize import linprog
 import seaborn as sns
 import os
 
-# Create output directory for plots
-output_dir = "rps-plots"
+# Create output directory for plots.
+output_dir = "mp-plots"
 os.makedirs(output_dir, exist_ok=True)
 
 ############################################
-# Environment: Stochastic Rock–Paper–Scissors
+# Environment: Matching Pennies Game (Non–stochastic)
 ############################################
-class StochasticRPSGame:
+class MatchingPenniesGame:
     def __init__(self):
-        # Two states for the game (0 and 1)
-        self.states = [0, 1]
+        # A dummy state (always 0) because the game is fixed.
         self.current_state = 0
-        # In state 0: standard RPS payoffs; in state 1: payoffs are "flipped"
-        self.payoff_matrices = {
-            0: np.array([[ 0, -1,  1],
-                         [ 1,  0, -1],
-                         [-1,  1,  0]]),
-            1: np.array([[ 0,  1, -1],
-                         [-1,  0,  1],
-                         [ 1, -1,  0]])
-        }
-        # State transition: high probability to remain in the same state.
-        self.state_transition = np.array([[0.8, 0.2],
-                                          [0.2, 0.8]])
+        # Fixed payoff matrix for the row (player 1):
+        # If actions match, row gets +1; if not, row gets –1.
+        self.payoff_matrix = np.array([[ 1, -1],
+                                       [-1,  1]])
         
     def step(self, action1, action2):
         """
-        Given actions (0: Rock, 1: Paper, 2: Scissors) for player1 and player2,
-        return (reward for player1, reward for player2) and update the state.
+        Given actions (0 or 1) from player 1 and player 2, return:
+          (reward for player 1, reward for player 2) and a dummy next state (always 0).
         """
-        payoff = self.payoff_matrices[self.current_state]
-        reward1 = payoff[action1, action2]
-        reward2 = -reward1  # zero–sum game
-        next_state = np.random.choice(self.states, p=self.state_transition[self.current_state])
-        self.current_state = next_state
-        return reward1, reward2, next_state
+        reward1 = self.payoff_matrix[action1, action2]
+        reward2 = -reward1  # Zero-sum game.
+        return reward1, reward2, 0
 
 ############################################
 # Agent Classes
@@ -77,14 +71,14 @@ class StochasticRPSGame:
 class FictitiousPlayAgent:
     def __init__(self, n_actions):
         self.n_actions = n_actions
-        # Initialize with a uniform prior (ones)
+        # Start with a uniform prior (using ones).
         self.history = np.ones(n_actions)
         self.strategy = self.history / np.sum(self.history)
-        self.strategy_history = []  # record the evolving strategy
+        self.strategy_history = []  # Record the evolving strategy.
         self.action_history = []
         
     def choose_action(self, state):
-        # Ignores state; uses empirical strategy
+        # Ignores the state; samples from the empirical strategy.
         action = np.random.choice(range(self.n_actions), p=self.strategy)
         self.action_history.append(action)
         return action
@@ -99,7 +93,7 @@ class QLearningAgent:
     def __init__(self, n_actions, n_states, alpha=0.1, gamma=0.9,
                  epsilon=1.0, epsilon_decay=0.9995, epsilon_min=0.1):
         self.n_actions = n_actions
-        self.n_states = n_states
+        self.n_states = n_states  # Here, n_states = 1.
         self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon
@@ -109,7 +103,7 @@ class QLearningAgent:
         self.q_table = {state: np.zeros(n_actions) for state in range(n_states)}
         self.q_history = {state: [] for state in range(n_states)}
         self.action_history = []
-        self.epsilon_history = []  # record epsilon over time
+        self.epsilon_history = []  # Record epsilon over time.
         
     def choose_action(self, state):
         if np.random.rand() < self.epsilon:
@@ -132,13 +126,13 @@ class MinimaxRLAgent:
     def __init__(self, n_actions, n_states, alpha=0.1, gamma=0.9,
                  epsilon=1.0, epsilon_decay=0.9995, epsilon_min=0.1):
         self.n_actions = n_actions
-        self.n_states = n_states
+        self.n_states = n_states  # Here, n_states = 1.
         self.alpha = alpha
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
-        # Q–table: for each state, a matrix (our actions × opponent actions)
+        # Q–table: for each state, a matrix (our actions x opponent actions)
         self.q_table = {state: np.zeros((n_actions, n_actions)) for state in range(n_states)}
         self.q_history = {state: [] for state in range(n_states)}
         self.action_history = []
@@ -164,9 +158,9 @@ class MinimaxRLAgent:
 class BeliefBasedAgent:
     def __init__(self, n_actions, payoff_matrices):
         self.n_actions = n_actions
-        # Assume the agent knows the payoff matrices.
-        self.payoff_matrices = payoff_matrices  # dict: state -> payoff matrix
-        # Beliefs: counts for each state (start with ones)
+        # The agent knows the fixed payoff matrix.
+        self.payoff_matrices = payoff_matrices  # dict: state -> payoff matrix.
+        # Beliefs (counts) for each state (start with ones).
         self.beliefs = {state: np.ones(n_actions) for state in payoff_matrices.keys()}
         self.belief_history = {state: [] for state in payoff_matrices.keys()}
         self.action_history = []
@@ -185,18 +179,18 @@ class BeliefBasedAgent:
         self.belief_history[state].append(self.beliefs[state].copy())
 
 ############################################
-# Helper: LP Solver for the Minimax Agent
+# Helper: LP Solver for Minimax RL Agent
 ############################################
 def solve_minimax(Q_mat):
     """
-    Given a Q–matrix (n_actions × n_actions) for a zero–sum stage game,
-    solve for the minimax value and the optimal mixed strategy.
-    
-    The LP formulation is:
+    Given a Q–matrix (n_actions x n_actions) for a zero–sum stage game,
+    solve for the minimax value and optimal mixed strategy.
+
+    LP formulation:
         maximize v
-        subject to: for each opponent action j, sum_i Q(i,j)*p(i) >= v,
+        subject to: for each j, sum_i Q(i,j)*p(i) >= v,
                     sum_i p(i) = 1, and p(i) >= 0.
-    This is transformed into a standard minimization LP.
+    We convert this to a minimization LP.
     """
     n = Q_mat.shape[0]
     c = [-1] + [0] * n  # objective: minimize -v
@@ -230,16 +224,15 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
                    game_env_class, episodes=2000, trials=5):
     """
     Run a match between two agents over many episodes and trials.
-    Both agents receive the current state (if needed). Their update method signature is:
-        update(state, my_action, opponent_action, reward, next_state)
+    (Even though the game is repeated and non–stochastic, we still use a state parameter.)
     
     Records for each trial:
-      - Episode rewards and cumulative scores
-      - Environment state sequence
-      - Joint actions
-      - Extra info (e.g. strategy history, epsilon history)
+      - Episode rewards and cumulative scores.
+      - Environment state sequence.
+      - Joint actions.
+      - Extra info (e.g. strategy history, epsilon history, belief history).
       - Q–value history (for state 0) if available.
-    Returns a dictionary of arrays/lists with the collected data.
+    Returns a dictionary with the collected data.
     """
     rewards_agent1_trials = []
     rewards_agent2_trials = []
@@ -249,9 +242,9 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
     joint_actions_trials = []
     extra_info_agent1_trials = []
     extra_info_agent2_trials = []
-    q_history_agent1_trials = []  # For agents with Q–tables (state 0)
+    q_history_agent1_trials = []  # For agents with Q–tables.
     q_history_agent2_trials = []
-
+    
     for t in range(trials):
         env = game_env_class()
         agent1 = agent1_class(**agent1_params)
@@ -264,7 +257,6 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
         states = []
         joint_actions = []
         
-        # Extra info: record policy (if available) and epsilon (if available)
         extra1 = {
             'policy_history': agent1.strategy_history if hasattr(agent1, 'strategy_history') else None,
             'epsilon_history': agent1.epsilon_history if hasattr(agent1, 'epsilon_history') else None,
@@ -277,7 +269,7 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
         }
         
         cum1, cum2 = 0, 0
-        current_state = env.current_state
+        current_state = env.current_state  # always 0 in our matching pennies.
         
         for ep in range(episodes):
             states.append(current_state)
@@ -293,7 +285,7 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
             rewards2.append(r2)
             cum_scores1.append(cum1)
             cum_scores2.append(cum2)
-            current_state = next_state
+            current_state = next_state  # remains 0.
         
         rewards_agent1_trials.append(rewards1)
         rewards_agent2_trials.append(rewards2)
@@ -304,9 +296,7 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
         extra_info_agent1_trials.append(extra1)
         extra_info_agent2_trials.append(extra2)
         
-        # If agents record Q–value history, record the snapshots for state 0.
         if hasattr(agent1, 'q_history'):
-            # Make a copy of the list for state 0 (if available)
             q_history_agent1_trials.append(agent1.q_history.get(0, []))
         if hasattr(agent2, 'q_history'):
             q_history_agent2_trials.append(agent2.q_history.get(0, []))
@@ -344,11 +334,11 @@ def pad_and_average(time_series_list):
     return np.nanmean(padded, axis=0)
 
 ############################################
-# Define Experiments (all pairwise combinations)
+# Define Experiments (All Pairwise Combinations)
 ############################################
 # Global parameters.
-n_actions = 3
-n_states = 2
+n_actions = 2
+n_states = 1  # Only one state.
 episodes = 2000
 trials = 5
 
@@ -360,14 +350,16 @@ ql_params = {'n_actions': n_actions, 'n_states': n_states,
 mm_params = {'n_actions': n_actions, 'n_states': n_states,
              'alpha': 0.1, 'gamma': 0.9, 'epsilon': 1.0,
              'epsilon_decay': 0.9995, 'epsilon_min': 0.1}
-dummy_env = StochasticRPSGame()  # to extract payoff matrices for BP
-bp_params = {'n_actions': n_actions, 'payoff_matrices': dummy_env.payoff_matrices}
+# For Belief–Based agent, provide the known (fixed) payoff matrix in a dict.
+mp_payoff_matrix = np.array([[ 1, -1],
+                             [-1,  1]])
+bp_params = {'n_actions': n_actions, 'payoff_matrices': {0: mp_payoff_matrix}}
 
-# List of experiments as dictionaries.
-# Each experiment specifies:
-#   - name: a unique name (used in file names)
-#   - agent1: class for agent1, with parameters in params1
-#   - agent2: class for agent2, with parameters in params2
+# List of experiments.
+# Each experiment is a dictionary specifying:
+#   - name: unique experiment name (used in file names)
+#   - agent1: class for agent1 and parameters (params1)
+#   - agent2: class for agent2 and parameters (params2)
 #   - labels: tuple with names for agent1 and agent2 (for plot legends)
 experiments = [
     {"name": "fp_vs_ql", "agent1": FictitiousPlayAgent, "agent2": QLearningAgent,
@@ -394,7 +386,7 @@ for exp in experiments:
     print(f"Running experiment: {exp_name} ({label1} vs. {label2})")
     results = run_simulation(exp["agent1"], exp["agent2"],
                              exp["params1"], exp["params2"],
-                             StochasticRPSGame, episodes=episodes, trials=trials)
+                             MatchingPenniesGame, episodes=episodes, trials=trials)
     
     # (a) Moving Average Rewards
     avg_rewards1 = np.mean(results['rewards_agent1'], axis=0)
@@ -422,13 +414,13 @@ for exp in experiments:
     plt.savefig(os.path.join(output_dir, f"{exp_name}_cumulative.png"))
     plt.close()
     
-    # (c) Environment State Evolution (average state over trials)
+    # (c) Environment State Evolution (since state is fixed, this will be constant)
     avg_states = np.mean(results['states'], axis=0)
     plt.figure(figsize=(12,6))
     plt.plot(avg_states)
     plt.title(f"Average Environment State ({label1} vs. {label2})")
     plt.xlabel("Episode")
-    plt.ylabel("State (0 or 1)")
+    plt.ylabel("State (always 0)")
     plt.savefig(os.path.join(output_dir, f"{exp_name}_states.png"))
     plt.close()
     
@@ -440,8 +432,8 @@ for exp in experiments:
     heatmap_data /= np.sum(heatmap_data)
     plt.figure(figsize=(8,6))
     sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap="YlGnBu",
-                xticklabels=['Rock', 'Paper', 'Scissors'],
-                yticklabels=['Rock', 'Paper', 'Scissors'])
+                xticklabels=['Heads', 'Tails'],
+                yticklabels=['Heads', 'Tails'])
     plt.title(f"Joint Action Frequency ({label1} vs. {label2})")
     plt.xlabel(f"{label2} Action")
     plt.ylabel(f"{label1} Action")
@@ -462,15 +454,14 @@ for exp in experiments:
     plt.savefig(os.path.join(output_dir, f"{exp_name}_reward_distribution.png"))
     plt.close()
     
-    # (f) Policy Evolution (if any agent records a strategy; e.g., FP)
+    # (f) Policy Evolution (if available)
     extra1 = results['extra_info_agent1']
     if extra1 and extra1[0]['policy_history'] is not None:
-        # Assume agent1 is FP and has policy history
         policies = [np.array(trial) for trial in [ex['policy_history'] for ex in extra1]]
         avg_policy = np.mean(np.array(policies), axis=0)
         ep_axis = np.arange(avg_policy.shape[0])
         plt.figure(figsize=(12,6))
-        plt.stackplot(ep_axis, avg_policy.T, labels=['Rock', 'Paper', 'Scissors'])
+        plt.stackplot(ep_axis, avg_policy.T, labels=['Heads', 'Tails'])
         plt.title(f"{label1} Policy Evolution")
         plt.xlabel("Episode")
         plt.ylabel("Action Probability")
@@ -483,7 +474,7 @@ for exp in experiments:
         avg_policy = np.mean(np.array(policies), axis=0)
         ep_axis = np.arange(avg_policy.shape[0])
         plt.figure(figsize=(12,6))
-        plt.stackplot(ep_axis, avg_policy.T, labels=['Rock', 'Paper', 'Scissors'])
+        plt.stackplot(ep_axis, avg_policy.T, labels=['Heads', 'Tails'])
         plt.title(f"{label2} Policy Evolution")
         plt.xlabel("Episode")
         plt.ylabel("Action Probability")
@@ -491,7 +482,7 @@ for exp in experiments:
         plt.savefig(os.path.join(output_dir, f"{exp_name}_{label2.replace(' ', '_').lower()}_policy_evolution.png"))
         plt.close()
     
-    # (g) Epsilon Decay (if agent has epsilon_history; e.g., QL or MM)
+    # (g) Epsilon Decay (if available)
     if extra1 and extra1[0]['epsilon_history'] is not None:
         epsilons = [np.array(trial) for trial in [ex['epsilon_history'] for ex in extra1]]
         avg_epsilon = np.mean(np.array(epsilons), axis=0)
@@ -515,11 +506,9 @@ for exp in experiments:
         plt.savefig(os.path.join(output_dir, f"{exp_name}_{label2.replace(' ', '_').lower()}_epsilon_decay.png"))
         plt.close()
     
-    # (h) Q–Value Evolution and Convergence (if the agent has a Q–table)
-    # We'll do this for agent1 and agent2 separately if available.
+    # (h) Q–Value Evolution and Convergence (if available)
     if 'q_history_agent1' in results and len(results['q_history_agent1']) > 0:
-        # For each trial, compute max(Q) (if Q–table is a vector) or minimax value (if a matrix)
-        q_history_list = results['q_history_agent1']  # list of trials; each trial is a list of snapshots for state 0
+        q_history_list = results['q_history_agent1']
         max_values_list = []
         norm_diff_list = []
         for trial in q_history_list:
