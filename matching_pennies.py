@@ -26,7 +26,7 @@ And, when available:
     g. Epsilon Decay (for agents using ε–greedy, e.g. QL and MM)
     h. Q–Value Evolution and Convergence
 
-Plots are saved in the "plots" folder.
+Plots are saved in the "mp-plots" folder.
 
 Required packages:
     pip install numpy matplotlib scipy seaborn
@@ -233,7 +233,7 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
       - Environment state sequence.
       - Joint actions.
       - Extra info (e.g. strategy history, epsilon history, belief history).
-      - Q–value history (for state 0) if available.
+      - Per–episode Q–values (if available).
     Returns a dictionary with the collected data.
     """
     rewards_agent1_trials = []
@@ -244,8 +244,8 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
     joint_actions_trials = []
     extra_info_agent1_trials = []
     extra_info_agent2_trials = []
-    q_history_agent1_trials = []  # For agents with Q–tables.
-    q_history_agent2_trials = []
+    q_values_agent1_trials = []  # Record per–episode Q–values for agent1.
+    q_values_agent2_trials = []  # Record per–episode Q–values for agent2.
     
     for t in range(trials):
         env = game_env_class()
@@ -258,6 +258,8 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
         cum_scores2 = []
         states = []
         joint_actions = []
+        q_values1 = []  # For agent1: record Q–table snapshot per episode.
+        q_values2 = []  # For agent2.
         
         extra1 = {
             'policy_history': agent1.strategy_history if hasattr(agent1, 'strategy_history') else None,
@@ -271,7 +273,7 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
         }
         
         cum1, cum2 = 0, 0
-        current_state = env.current_state  # always 0 in our matching pennies.
+        current_state = env.current_state  # always 0
         
         for ep in range(episodes):
             states.append(current_state)
@@ -281,6 +283,16 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
             r1, r2, next_state = env.step(a1, a2)
             agent1.update(current_state, a1, a2, r1, next_state)
             agent2.update(current_state, a2, a1, r2, next_state)
+            # Record Q–values for state 0 if available.
+            if hasattr(agent1, 'q_table'):
+                q_values1.append(agent1.q_table[0].copy())
+            else:
+                q_values1.append(None)
+            if hasattr(agent2, 'q_table'):
+                q_values2.append(agent2.q_table[0].copy())
+            else:
+                q_values2.append(None)
+            
             cum1 += r1
             cum2 += r2
             rewards1.append(r1)
@@ -297,11 +309,8 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
         joint_actions_trials.append(joint_actions)
         extra_info_agent1_trials.append(extra1)
         extra_info_agent2_trials.append(extra2)
-        
-        if hasattr(agent1, 'q_history'):
-            q_history_agent1_trials.append(agent1.q_history.get(0, []))
-        if hasattr(agent2, 'q_history'):
-            q_history_agent2_trials.append(agent2.q_history.get(0, []))
+        q_values_agent1_trials.append(q_values1)
+        q_values_agent2_trials.append(q_values2)
     
     results = {
         'rewards_agent1': np.array(rewards_agent1_trials),
@@ -312,11 +321,9 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
         'joint_actions': joint_actions_trials,
         'extra_info_agent1': extra_info_agent1_trials,
         'extra_info_agent2': extra_info_agent2_trials,
+        'q_values_agent1': q_values_agent1_trials,
+        'q_values_agent2': q_values_agent2_trials,
     }
-    if q_history_agent1_trials:
-        results['q_history_agent1'] = q_history_agent1_trials
-    if q_history_agent2_trials:
-        results['q_history_agent2'] = q_history_agent2_trials
     return results
 
 ############################################
@@ -381,7 +388,7 @@ experiments = [
 ############################################
 # Loop over Experiments and Produce Plots
 ############################################
-"""
+
 for exp in experiments:
     exp_name = exp["name"]
     label1, label2 = exp["labels"]
@@ -510,8 +517,9 @@ for exp in experiments:
         plt.close()
     
     # (h) Q–Value Evolution and Convergence (if available)
-    if 'q_history_agent1' in results and len(results['q_history_agent1']) > 0:
-        q_history_list = results['q_history_agent1']
+    if 'q_values_agent1' in results and any(q is not None for q in results['q_values_agent1'][0]):
+        # For each trial, compute the maximum Q-value and its change over episodes.
+        q_history_list = results['q_values_agent1']
         max_values_list = []
         norm_diff_list = []
         for trial in q_history_list:
@@ -519,17 +527,21 @@ for exp in experiments:
             trial_norm_diff = []
             prev = None
             for snapshot in trial:
-                # If snapshot is 1D, use max; if 2D (matrix), compute minimax value.
-                if snapshot.ndim == 1:
-                    value = np.max(snapshot)
+                if snapshot is not None:
+                    # If snapshot is a vector, take max; if matrix, compute minimax value.
+                    if snapshot.ndim == 1:
+                        value = np.max(snapshot)
+                    else:
+                        value, _ = solve_minimax(snapshot)
+                    trial_max.append(value)
+                    if prev is not None:
+                        trial_norm_diff.append(np.linalg.norm(snapshot - prev))
+                    else:
+                        trial_norm_diff.append(0)
+                    prev = snapshot
                 else:
-                    value, _ = solve_minimax(snapshot)
-                trial_max.append(value)
-                if prev is not None:
-                    trial_norm_diff.append(np.linalg.norm(snapshot - prev))
-                else:
-                    trial_norm_diff.append(0)
-                prev = snapshot
+                    trial_max.append(np.nan)
+                    trial_norm_diff.append(np.nan)
             max_values_list.append(np.array(trial_max))
             norm_diff_list.append(np.array(trial_norm_diff))
         avg_max_values = pad_and_average(max_values_list)
@@ -537,7 +549,7 @@ for exp in experiments:
         plt.figure(figsize=(12,6))
         plt.plot(avg_max_values, label=f"{label1} Q–Value")
         plt.title(f"Q–Value Evolution ({label1})")
-        plt.xlabel("Update Index (visits to state 0)")
+        plt.xlabel("Episode")
         plt.ylabel("Value")
         plt.legend()
         plt.savefig(os.path.join(output_dir, f"{exp_name}_{label1.replace(' ', '_').lower()}_qvalues.png"))
@@ -545,12 +557,12 @@ for exp in experiments:
         plt.figure(figsize=(12,6))
         plt.plot(avg_norm_diff)
         plt.title(f"Q–Value Convergence ({label1})")
-        plt.xlabel("Update Index (visits to state 0)")
+        plt.xlabel("Episode")
         plt.ylabel("Norm Difference")
         plt.savefig(os.path.join(output_dir, f"{exp_name}_{label1.replace(' ', '_').lower()}_qvalue_convergence.png"))
         plt.close()
-    if 'q_history_agent2' in results and len(results['q_history_agent2']) > 0:
-        q_history_list = results['q_history_agent2']
+    if 'q_values_agent2' in results and any(q is not None for q in results['q_values_agent2'][0]):
+        q_history_list = results['q_values_agent2']
         max_values_list = []
         norm_diff_list = []
         for trial in q_history_list:
@@ -558,16 +570,20 @@ for exp in experiments:
             trial_norm_diff = []
             prev = None
             for snapshot in trial:
-                if snapshot.ndim == 1:
-                    value = np.max(snapshot)
+                if snapshot is not None:
+                    if snapshot.ndim == 1:
+                        value = np.max(snapshot)
+                    else:
+                        value, _ = solve_minimax(snapshot)
+                    trial_max.append(value)
+                    if prev is not None:
+                        trial_norm_diff.append(np.linalg.norm(snapshot - prev))
+                    else:
+                        trial_norm_diff.append(0)
+                    prev = snapshot
                 else:
-                    value, _ = solve_minimax(snapshot)
-                trial_max.append(value)
-                if prev is not None:
-                    trial_norm_diff.append(np.linalg.norm(snapshot - prev))
-                else:
-                    trial_norm_diff.append(0)
-                prev = snapshot
+                    trial_max.append(np.nan)
+                    trial_norm_diff.append(np.nan)
             max_values_list.append(np.array(trial_max))
             norm_diff_list.append(np.array(trial_norm_diff))
         avg_max_values = pad_and_average(max_values_list)
@@ -575,7 +591,7 @@ for exp in experiments:
         plt.figure(figsize=(12,6))
         plt.plot(avg_max_values, label=f"{label2} Q–Value")
         plt.title(f"Q–Value Evolution ({label2})")
-        plt.xlabel("Update Index (visits to state 0)")
+        plt.xlabel("Episode")
         plt.ylabel("Value")
         plt.legend()
         plt.savefig(os.path.join(output_dir, f"{exp_name}_{label2.replace(' ', '_').lower()}_qvalues.png"))
@@ -583,18 +599,24 @@ for exp in experiments:
         plt.figure(figsize=(12,6))
         plt.plot(avg_norm_diff)
         plt.title(f"Q–Value Convergence ({label2})")
-        plt.xlabel("Update Index (visits to state 0)")
+        plt.xlabel("Episode")
         plt.ylabel("Norm Difference")
         plt.savefig(os.path.join(output_dir, f"{exp_name}_{label2.replace(' ', '_').lower()}_qvalue_convergence.png"))
         plt.close()
     
     print(f"Experiment {exp_name} completed. Plots saved in '{output_dir}' directory.\n")
-"""
-# List to hold one row per episode for each experiment and trial.
+
+############################################
+# Export Data for Interactive Visualization
+############################################
+# We will export one row per episode per agent.
+# The columns are:
+# (experiment, trial, episode, agent_name, reward, environment_state, action, policy_distribution, epsilon, q_values)
 export_rows = []
 
 for exp in experiments:
     exp_name = exp["name"]
+    label1, label2 = exp["labels"]
     # Run the simulation for this experiment.
     results = run_simulation(exp["agent1"], exp["agent2"],
                              exp["params1"], exp["params2"],
@@ -604,10 +626,10 @@ for exp in experiments:
     for t in range(trials):
         rewards1 = results['rewards_agent1'][t]
         rewards2 = results['rewards_agent2'][t]
-        cum1 = results['cum_scores_agent1'][t]
-        cum2 = results['cum_scores_agent2'][t]
         states = results['states'][t]
         joint_actions = results['joint_actions'][t]
+        qvals1 = results['q_values_agent1'][t]
+        qvals2 = results['q_values_agent2'][t]
         
         # Extra info: these might be None if the agent doesn't record them.
         extra1 = results['extra_info_agent1'][t]
@@ -617,29 +639,36 @@ for exp in experiments:
         policy2_history = extra2['policy_history'] if extra2['policy_history'] is not None else [None]*episodes
         epsilon2_history = extra2['epsilon_history'] if extra2['epsilon_history'] is not None else [None]*episodes
 
-        # For each episode in this trial, record a row.
+        # For each episode in this trial, record one row per agent.
         for ep in range(episodes):
-            row = {
+            # Row for Agent 1.
+            row1 = {
                 "experiment": exp_name,
                 "trial": t,
                 "episode": ep,
-                "agent1": joint_actions[ep][0],
-                "agent2": joint_actions[ep][1],
-                "reward_agent1": rewards1[ep],
-                "reward_agent2": rewards2[ep],
-                "cumulative_score_agent1": cum1[ep],
-                "cumulative_score_agent2": cum2[ep],
+                "agent_name": label1,
+                "reward": rewards1[ep],
                 "environment_state": states[ep],
-                # Convert lists/arrays to JSON strings for easier visualization later.
-                "policy_distribution_agent1": json.dumps(policy1_history[ep].tolist()) if policy1_history[ep] is not None else None,
-                "policy_distribution_agent2": json.dumps(policy2_history[ep].tolist()) if policy2_history[ep] is not None else None,
-                "epsilon_agent1": epsilon1_history[ep],
-                "epsilon_agent2": epsilon2_history[ep],
-                # q_values: not recorded per episode in your simulation.
-                "q_values_agent1": None,
-                "q_values_agent2": None,
+                "action": joint_actions[ep][0],
+                "policy_distribution": json.dumps(policy1_history[ep].tolist()) if policy1_history[ep] is not None else None,
+                "epsilon": epsilon1_history[ep],
+                "q_values": json.dumps(qvals1[ep].tolist()) if (qvals1[ep] is not None) else None,
             }
-            export_rows.append(row)
+            export_rows.append(row1)
+            # Row for Agent 2.
+            row2 = {
+                "experiment": exp_name,
+                "trial": t,
+                "episode": ep,
+                "agent_name": label2,
+                "reward": rewards2[ep],
+                "environment_state": states[ep],
+                "action": joint_actions[ep][1],
+                "policy_distribution": json.dumps(policy2_history[ep].tolist()) if policy2_history[ep] is not None else None,
+                "epsilon": epsilon2_history[ep],
+                "q_values": json.dumps(qvals2[ep].tolist()) if (qvals2[ep] is not None) else None,
+            }
+            export_rows.append(row2)
 
 # Convert the list of rows into a DataFrame and export it.
 df_export = pd.DataFrame(export_rows)
