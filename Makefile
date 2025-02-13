@@ -24,4 +24,4 @@ $(REPORT_PDF): $(REPORT_TEX)
 	pdflatex report.tex
 
 clean:
-	rm mp_simulation_data.csv rps_simulation_data.csv rps-plots/* mp-plots/*
+	rm rps-plots/* mp-plots/* *.csv report.aux report.log report.out

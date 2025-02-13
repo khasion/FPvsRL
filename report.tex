@@ -1,114 +1,104 @@
-\documentclass{article}
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb, amsthm}
 \usepackage{graphicx}
-\usepackage{amsmath}
-\usepackage[colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue]{hyperref}
+\usepackage{hyperref}
+\usepackage{enumitem}
 \usepackage{booktabs}
-\usepackage{caption}
-\usepackage{float}
-\usepackage[legalpaper, margin=3cm]{geometry}
+\usepackage{geometry}
+\geometry{margin=1in}
 
-\title{Comparing Fictitious Play and Q-Learning in Stochastic Zero-Sum Games}
-\author{Ioannis Kasionis \and Ioannis Koutsoukis}
+\title{Fictitious Play and Reinforcement Learning for Computing Equilibria in Repeated Zero-Sum Games}
+\author{Your Name \\ Your Institution \\ \texttt{your.email@example.com}}
 \date{\today}
 
 \begin{document}
+
 \maketitle
-\tableofcontents
-\pagebreak
+
+\begin{abstract}
+This project investigates computational approaches to compute equilibria in repeated zero-sum games. We compare Fictitious Play with several reinforcement learning techniques, including Q-Learning, Minimax Reinforcement Learning, and Belief-Based methods, in the context of two canonical games: stochastic Rock-Paper-Scissors (RPS) and Matching Pennies (MP). The study combines theoretical analysis with extensive simulations. Results are visualized through various performance metrics, such as cumulative scores, convergence behavior, policy evolution, and joint action frequency. Our findings highlight differences in convergence speed, learning stability, and the impact of stochastic environments.
+\end{abstract}
+
+\section{Introduction}
+The computation of equilibria in games is a central problem in game theory and multi-agent systems. Repeated zero-sum games, where the gain of one player is exactly balanced by the loss of the other, provide an ideal test-bed for studying learning dynamics in adversarial settings. In this work, we explore iterative learning algorithms that allow players to converge toward equilibrium strategies without requiring complete analytical solutions. We focus on comparing Fictitious Play (FP) with reinforcement learning (RL) methods—including Q-Learning, Minimax RL, and Belief-Based approaches—in two well-known games: Rock-Paper-Scissors and Matching Pennies.
 
 \section{Theoretical Background}
-\subsection{Repeated \& Zero-Sum Stochastic Games}
-Zero-sum games satisfy $\pi_1 + \pi_2 = 0$ where $\pi_i$ are player payoffs. Our stochastic version adds:
+
+\subsection{Repeated Zero-Sum Games}
+Repeated zero-sum games consist of a stage game that is played over several episodes. In each round, both players select actions simultaneously. The payoff for one player is the negative of the other player's payoff, ensuring that the total payoff sums to zero. The repetition of the game allows players to learn from past outcomes, adapt their strategies, and potentially converge to a Nash equilibrium or a minimax solution. These games serve as a foundational model for adversarial interactions in economics, security, and machine learning.
+
+\subsection{Learning Agents}
+Several learning algorithms have been proposed to compute equilibria in repeated games:
 \begin{itemize}
-\item Action selection randomness (10\% exploration rate)
-\item Gaussian payoff noise: $\mathcal{N}(0,\sigma^2)$ with $\sigma^2=0.1$ (RPS), $\sigma^2=0.5$ (PD)
+    \item \textbf{Fictitious Play (FP):} Players assume that opponents will play according to the empirical frequency of their past actions. They then choose the best response to these beliefs.
+    \item \textbf{Q-Learning (QL):} An RL method where agents learn the expected utility of actions using a Q–table and update it iteratively via temporal difference learning.
+    \item \textbf{Minimax RL:} A variation of Q–Learning adapted for adversarial settings, where agents aim to maximize the minimum gain against a worst-case opponent.
+    \item \textbf{Belief-Based Methods:} Agents update probabilistic beliefs about the opponent's actions and choose their best response accordingly.
 \end{itemize}
 
-\subsection{Fictitious Play (FP)}
-Players form beliefs about opponents' strategies using:
-\begin{equation}
-\sigma_i^t = \frac{N(a_{-i})}{\sum_{a'}{N(a')}}
-\end{equation}
-where $N(a_{-i})$ counts opponent's past actions.
+\section{Implementation}
 
-\subsection{Reinforcement Learning (Q-Learning)}
-Agents learn action values through temporal difference updates:
-\begin{equation}
-Q(a) \leftarrow Q(a) + \alpha\left[r + \gamma \max_{a'}Q(a') - Q(a)\right]
-\end{equation}
-
-\subsubsection{Q-Learning with $\epsilon$-Decay}
-Modified exploration schedule:
-\begin{equation}
-\epsilon_{t+1} = \max\left(\epsilon_{\min}, \epsilon_t \cdot decayrate\right)
-\end{equation}
-with $\epsilon_{\min}=0.1$, initial $\epsilon_0=1.0$, $decayrate=0.999$.
-
-\section{Modified Games Implementation}
-\subsection{Stochastic Rock-Paper-Scissors}
+\subsection{Environment Setup}
+Two game environments were implemented in Python:
 \begin{itemize}
-\item Asymmetric payoff noise $\mathcal{N}(0,0.1)$
-\item $\epsilon$-decay schedule: 0.9995 decay factor
-\item Tracking: 100-episode moving averages
+    \item \textbf{Stochastic Rock-Paper-Scissors (RPS):} In this environment, the game is played in two states with different payoff matrices. A state transition function introduces stochasticity, altering the stage game dynamically.
+    \item \textbf{Matching Pennies (MP):} A non-stochastic repeated zero-sum game with a fixed payoff matrix, where the payoff for one player is the negative of the other.
 \end{itemize}
+Each environment is encapsulated within a Python class that defines the state, payoff matrices, and state transition rules.
 
-\subsection{Zero-Sum Prisoner's Dilemma}
+\subsection{Experimental Design}
+Experiments were conducted by pitting every pair of the four agents (FP, QL, Minimax RL, Belief-Based) against each other in both game environments. For each experiment, multiple trials were executed, each spanning thousands of episodes. During these simulations, various performance metrics were recorded, including:
 \begin{itemize}
-\item Asymmetric payoff noise $\mathcal{N}(0,0.5)$
-\item Zero-sum conversion: $\pi_{\text{col}} = -\pi_{\text{row}}$
+    \item Moving average rewards.
+    \item Cumulative scores over episodes.
+    \item Q–value evolution and convergence.
+    \item Policy evolution and learning stability.
+    \item Joint action frequency.
 \end{itemize}
+The simulation results were exported to CSV files and subsequently visualized using an interactive Python Dash dashboard.
 
-\section{Experimental Results Analysis}
-\subsection{Strategy Evolution}
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.75\textwidth]{rps_fp_strategy.png}
-\caption{FP strategy convergence in RPS (Nash equilibrium at 33\% each action). Early oscillations reflect adaptation to QL's exploration phase.}
-\label{fig:fp_strat}
-\end{figure}
+\section{Results \& Discussion}
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.75\textwidth]{rps_ql_strategy.png}
-\caption{QL action selection in RPS showing $\epsilon$-decay effects: initial exploration (0-500 episodes) followed by strategy specialization.}
-\label{fig:ql_strat}
-\end{figure}
+\subsection{Convergence of Different Approaches}
+The convergence behavior of the different algorithms varied considerably. Fictitious Play exhibited smooth convergence to the Nash equilibrium, while RL methods (Q-Learning and Minimax RL) showed higher variance and occasional oscillatory behavior before stabilization. Belief-Based methods benefited from prior knowledge of the payoff matrix and converged relatively fast.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.75\textwidth]{pd_behavior.png}
-\caption{PD behavior: FP's increasing defect probability vs QL's preference for defection (Q1-Q0 $>$ 0). Mutual defection emerges as dominant strategy.}
-\label{fig:pd_behavior}
-\end{figure}
+\subsection{Comparative Performance in Stochastic RPS}
+In the stochastic RPS environment, average cumulative scores indicated that FP and Belief-Based agents performed similarly, consistently approaching equilibrium strategies. In contrast, Q-Learning and Minimax RL displayed slower convergence with higher variance, highlighting the challenges posed by the stochastic transitions between states.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.75\textwidth]{pd_rewards.png}
-\caption{PD reward divergence: QL's exploitation of defection strategy yields 18\% higher average rewards than FP.}
-\label{fig:pd_rewards}
-\end{figure}
+\subsection{Comparative Performance in Matching Pennies}
+For the fixed Matching Pennies game, all agents eventually converged to equilibrium strategies. However, differences in the speed of convergence and the transient performance were observed. RL methods required more episodes to stabilize due to exploration, while FP demonstrated rapid adaptation.
 
-\subsection{Cumulative Performance}
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.75\textwidth]{rps_cumulative.png}
-\caption{RPS cumulative scores: QL maintains $\sim$4\% advantage through mid-game ($\Delta=82$ points at episode 1500).}
-\label{fig:rps_cum}
-\end{figure}
+\subsection{Policy Evolution and Learning Stability}
+Visualizations of policy evolution revealed that FP maintained a steadily refining strategy distribution over episodes. In contrast, RL methods often underwent abrupt strategy changes due to the exploration-exploitation trade-off. The convergence charts of Q–values confirmed that RL methods eventually reduce exploitability, although at different rates.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.75\textwidth]{pd_cumulative.png}
-\caption{PD cumulative rewards: QL's strategy yields 23.7\% higher cumulative reward than FP by episode 2000.}
-\label{fig:pd_cum}
-\end{figure}
+\subsection{Joint Action Frequency Analysis}
+Joint action frequency heatmaps provided insight into the interaction dynamics between agents. In equilibrium, the joint action distributions approached uniformity in RPS, consistent with the theoretical Nash equilibrium. In Matching Pennies, the distribution reflected the symmetric nature of the game, validating the robustness of the learning process.
 
 \section{Conclusion}
-Key findings:
+This project demonstrates that iterative learning methods can effectively compute equilibria in repeated zero-sum games. Fictitious Play offers stable and rapid convergence in many cases, while reinforcement learning methods—although initially more volatile—eventually yield robust strategies. The experiments underscore the significance of adapting learning algorithms to the game environment and reveal that stochasticity plays a critical role in determining convergence dynamics.
+
+\subsection*{Key Takeaways}
 \begin{itemize}
-\item FP's interpretability vs QL's speed: FP reveals opponent modeling (Fig. \ref{fig:fp_strat}), while QL converges faster (Fig. \ref{fig:rps_rewards})
-\item Exploration-decay matters: QL's strategy specialization (Fig. \ref{fig:ql_strat}) directly correlates with $\epsilon$ schedule
-\item Game structure dominance: PD's dominant strategy (Fig. \ref{fig:pd_cum}) overpowers RPS's balanced equilibrium (Fig. \ref{fig:rps_cum})
+    \item Iterative learning methods, such as FP and RL, are viable for computing equilibria in repeated zero-sum games.
+    \item Fictitious Play generally converges stably, whereas RL methods require careful tuning of exploration parameters.
+    \item The stochastic nature of an environment can significantly affect the speed and stability of convergence.
 \end{itemize}
+
+\subsection*{Future Work}
+Future research directions include:
+\begin{itemize}
+    \item Extending the analysis to general-sum and multi-agent games.
+    \item Enhancing exploration strategies in RL to improve convergence rates.
+    \item Applying these learning methods to real-world scenarios characterized by high uncertainty and dynamic interactions.
+\end{itemize}
+
+\section*{References}
+\begin{enumerate}
+    \item Fudenberg, D. and Levine, D. K. (1998). \emph{The Theory of Learning in Games}. MIT Press.
+    \item Shapley, L. S. (1953). Stochastic Games. \emph{Proceedings of the National Academy of Sciences}, 39(10), 1095--1100.
+    \item Littman, M. L. (1994). Markov Games as a Framework for Multi-Agent Reinforcement Learning. In \emph{Machine Learning Proceedings 1994}, 157--163.
+    \item Busoniu, L., Babuska, R., and De Schutter, B. (2008). A Comprehensive Survey of Multi-agent Reinforcement Learning. \emph{IEEE Transactions on Systems, Man, and Cybernetics, Part C (Applications and Reviews)}, 38(2), 156--172.
+\end{enumerate}
 
 \end{document}

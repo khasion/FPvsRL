@@ -1,21 +1,45 @@
 import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output
+import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
 import numpy as np
 import json
+import ast
 import os
 
-# Function to load simulation data from CSV files.
+# Function to load processed CSV data for a given game (rps or mp)
+def load_processed_data(game):
+    data = {}
+    metrics = [
+        "moving_avg", "cumulative", "states", "joint_actions",
+        "reward_distribution", "policy_evolution", "epsilon_decay",
+        "q_evolution", "q_convergence"
+    ]
+    for metric in metrics:
+        filename = f"{game.lower()}_processed_{metric}.csv"
+        if os.path.exists(filename):
+            data[metric] = pd.read_csv(filename)
+        else:
+            data[metric] = pd.DataFrame()
+    return data
+
+# Load processed data for both games.
+rps_data = load_processed_data("rps")
+mp_data = load_processed_data("mp")
+# Dictionary mapping game selection to processed data.
+processed_data = {"RPS": rps_data, "MP": mp_data}
+
+# (Optional) Also load the raw simulation data (if needed for additional plots)
 def load_simulation_data():
     files = ['rps_simulation_data.csv', 'mp_simulation_data.csv']
     dataframes = []
-    
     for file in files:
         if os.path.exists(file):
             df = pd.read_csv(file)
-            # Tag data by game type.
+            for col in ['policy_distribution', 'q_values']:
+                df[col] = df[col].apply(lambda x: ast.literal_eval(x) if pd.notnull(x) else None)
             if 'rps' in file.lower():
                 df['game'] = 'RPS'
             elif 'mp' in file.lower():
@@ -23,18 +47,16 @@ def load_simulation_data():
             dataframes.append(df)
         else:
             print(f"Warning: {file} not found.")
-    
     if dataframes:
         simulation_data = pd.concat(dataframes, ignore_index=True)
     else:
         simulation_data = pd.DataFrame()
     return simulation_data
 
-# Load the data once.
 simulation_data = load_simulation_data()
 
 # Initialize Dash app.
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.CERULEAN])
 
 # Layout: Dropdowns, radio items, slider, and six graphs.
 app.layout = html.Div(
@@ -49,7 +71,7 @@ app.layout = html.Div(
                     options=[{'label': exp, 'value': exp} for exp in simulation_data['experiment'].unique()],
                     value=simulation_data['experiment'].unique()[0] if not simulation_data.empty else None,
                     clearable=False,
-                    style={'width': '90%'}
+                    style={'width': '90%', 'color': 'black'}
                 )
             ], style={'width': '30%', 'display': 'inline-block', 'verticalAlign': 'top'}),
             
@@ -70,44 +92,27 @@ app.layout = html.Div(
                 html.Label('Episodes', style={'fontSize': '24px'}),
                 dcc.Slider(
                     id='episodes-slider',
-                    min=10,
-                    max=100,
-                    step=10,
-                    value=50,
-                    marks={i: str(i) for i in range(10, 110, 20)},
+                    min=500,
+                    max=5000,
+                    step=500,
+                    value=5000,
+                    marks={i: str(i) for i in range(500, 5000, 500)},
                 )
             ], style={'width': '40%', 'display': 'inline-block'}),
         ]),
         html.Hr(style={'borderColor': 'gray'}),
         
         # Graphs arranged in two columns per row.
-        html.Div([
-            dcc.Graph(id='cumulative-value-chart')
-        ], style={'width': '48%', 'display': 'inline-block'}),
-        
-        html.Div([
-            dcc.Graph(id='win-percentage-pie')
-        ], style={'width': '48%', 'display': 'inline-block'}),
-        
-        html.Div([
-            dcc.Graph(id='convergence-chart')
-        ], style={'width': '48%', 'display': 'inline-block'}),
-        
-        html.Div([
-            dcc.Graph(id='confusion-matrix-heatmap')
-        ], style={'width': '48%', 'display': 'inline-block'}),
-        
-        html.Div([
-            dcc.Graph(id='reward-distribution-chart')
-        ], style={'width': '48%', 'display': 'inline-block'}),
-        
-        html.Div([
-            dcc.Graph(id='epsilon-decay-chart')
-        ], style={'width': '48%', 'display': 'inline-block'}),
+        html.Div([ dcc.Graph(id='cumulative-value-chart') ], style={'width': '48%', 'display': 'inline-block'}),
+        html.Div([ dcc.Graph(id='win-percentage-pie') ], style={'width': '48%', 'display': 'inline-block'}),
+        html.Div([ dcc.Graph(id='convergence-chart') ], style={'width': '48%', 'display': 'inline-block'}),
+        html.Div([ dcc.Graph(id='confusion-matrix-heatmap') ], style={'width': '48%', 'display': 'inline-block'}),
+        html.Div([ dcc.Graph(id='reward-distribution-chart') ], style={'width': '48%', 'display': 'inline-block'}),
+        html.Div([ dcc.Graph(id='epsilon-decay-chart') ], style={'width': '48%', 'display': 'inline-block'}),
     ]
 )
 
-# ------------------- Callback 1: Cumulative Score Chart -------------------
+# Callback 1: Cumulative Score Chart (from processed cumulative CSV)
 @app.callback(
     Output('cumulative-value-chart', 'figure'),
     [Input('scenario-dropdown', 'value'),
@@ -115,25 +120,19 @@ app.layout = html.Div(
      Input('episodes-slider', 'value')]
 )
 def update_cumulative_chart(selected_scenario, selected_game, max_episode):
-    df = simulation_data[
-        (simulation_data['experiment'] == selected_scenario) &
-        (simulation_data['game'] == selected_game) &
-        (simulation_data['episode'] <= max_episode)
-    ]
+    df = processed_data[selected_game]["cumulative"]
     if df.empty:
-        return px.line(title="No Data Available")
-    # Sort by trial and episode; compute cumulative reward per trial and agent.
-    df = df.sort_values(['trial', 'episode'])
-    df['cumulative_score'] = df.groupby(['trial', 'agent_name'])['reward'].cumsum()
-    # Average cumulative score across trials by agent and episode.
-    avg_df = df.groupby(['agent_name', 'episode'], as_index=False)['cumulative_score'].mean()
-    fig = px.line(avg_df, x='episode', y='cumulative_score', color='agent_name',
+        return px.line(title="No Cumulative Data Available")
+    df = df[(df['experiment'] == selected_scenario) & (df['episode'] <= max_episode)]
+    if df.empty:
+        return px.line(title="No Data for Selected Experiment")
+    fig = px.line(df, x='episode', y='cumulative_score', color='agent_name',
                   labels={'cumulative_score': 'Cumulative Score', 'episode': 'Episode', 'agent_name': 'Agent'},
                   title='Cumulative Score over Episodes')
     fig.update_layout(template='plotly_dark')
     return fig
 
-# ------------------- Callback 2: Win Percentage Pie Chart -------------------
+# Callback 2: Win Percentage Pie Chart (using processed cumulative CSV with trial info)
 @app.callback(
     Output('win-percentage-pie', 'figure'),
     [Input('scenario-dropdown', 'value'),
@@ -141,22 +140,16 @@ def update_cumulative_chart(selected_scenario, selected_game, max_episode):
      Input('episodes-slider', 'value')]
 )
 def update_win_percentage(selected_scenario, selected_game, max_episode):
-    df = simulation_data[
-        (simulation_data['experiment'] == selected_scenario) &
-        (simulation_data['game'] == selected_game) &
-        (simulation_data['episode'] <= max_episode)
-    ]
+    df = processed_data[selected_game]["cumulative"]
+    if df.empty or 'trial' not in df.columns:
+        return px.pie(title="No Trial-level Cumulative Data Available")
+    # Filter for the last episode.
+    df = df[(df['experiment'] == selected_scenario) & (df['episode'] == max_episode)]
     if df.empty:
-        return px.pie(title="No Data Available")
-    df = df.sort_values(['trial', 'episode'])
-    df['cumulative_score'] = df.groupby(['trial', 'agent_name'])['reward'].cumsum()
-    # Get final cumulative score for each trial and agent.
-    final_scores = df.groupby(['trial', 'agent_name'], as_index=False).last()
-    # Pivot so that each trial has both agents' final scores.
-    pivot = final_scores.pivot(index='trial', columns='agent_name', values='cumulative_score')
+        return px.pie(title="No Data for Selected Experiment")
+    pivot = df.pivot(index='trial', columns='agent_name', values='cumulative_score')
     if pivot.shape[1] < 2:
         return px.pie(title="Not enough agent data")
-    # Determine winner per trial.
     winners = pivot.apply(lambda row: row.idxmax(), axis=1)
     win_counts = winners.value_counts().reset_index()
     win_counts.columns = ['agent_name', 'wins']
@@ -164,7 +157,7 @@ def update_win_percentage(selected_scenario, selected_game, max_episode):
     fig.update_layout(template='plotly_dark')
     return fig
 
-# ------------------- Callback 3: Convergence Chart -------------------
+# Callback 3: Convergence Chart (using processed q_convergence CSV)
 @app.callback(
     Output('convergence-chart', 'figure'),
     [Input('scenario-dropdown', 'value'),
@@ -172,43 +165,19 @@ def update_win_percentage(selected_scenario, selected_game, max_episode):
      Input('episodes-slider', 'value')]
 )
 def update_convergence_chart(selected_scenario, selected_game, max_episode):
-    # We use Q–values (if available) to compute the norm difference between consecutive snapshots.
-    df = simulation_data[
-        (simulation_data['experiment'] == selected_scenario) &
-        (simulation_data['game'] == selected_game) &
-        (simulation_data['episode'] <= max_episode)
-    ]
-    if df.empty or 'q_values' not in df.columns:
-        return px.line(title="No Q–value Data Available")
-    
-    convergence_data = []
-    grouped = df.groupby(['trial', 'agent_name'])
-    for (trial, agent), group in grouped:
-        group = group.sort_values('episode')
-        prev = None
-        for _, row in group.iterrows():
-            q_json = row['q_values']
-            if pd.isna(q_json):
-                continue
-            try:
-                q_val = np.array(json.loads(q_json))
-            except Exception:
-                continue
-            if prev is not None:
-                diff = np.linalg.norm(q_val - prev)
-                convergence_data.append({'trial': trial, 'agent_name': agent, 'episode': row['episode'], 'norm_diff': diff})
-            prev = q_val
-    if not convergence_data:
-        return px.line(title="No Convergence Data Available")
-    conv_df = pd.DataFrame(convergence_data)
-    avg_conv = conv_df.groupby(['agent_name', 'episode'], as_index=False)['norm_diff'].mean()
-    fig = px.line(avg_conv, x='episode', y='norm_diff', color='agent_name',
-                  labels={'norm_diff': 'Average Norm Difference', 'episode': 'Episode'},
+    df = processed_data[selected_game]["q_convergence"]
+    if df.empty:
+        return px.line(title="No Q–Convergence Data Available")
+    df = df[(df['experiment'] == selected_scenario) & (df['update_index'] <= max_episode)]
+    if df.empty:
+        return px.line(title="No Data for Selected Experiment")
+    fig = px.line(df, x='update_index', y='norm_diff', color='agent_name',
+                  labels={'norm_diff': 'Average Norm Difference', 'update_index': 'Update Index'},
                   title='Q–Value Convergence Over Episodes')
     fig.update_layout(template='plotly_dark')
     return fig
 
-# ------------------- Callback 4: Joint Action Frequency Heatmap -------------------
+# Callback 4: Joint Action Frequency Heatmap (using processed joint_actions CSV)
 @app.callback(
     Output('confusion-matrix-heatmap', 'figure'),
     [Input('scenario-dropdown', 'value'),
@@ -216,37 +185,20 @@ def update_convergence_chart(selected_scenario, selected_game, max_episode):
      Input('episodes-slider', 'value')]
 )
 def update_heatmap(selected_scenario, selected_game, max_episode):
-    df = simulation_data[
-        (simulation_data['experiment'] == selected_scenario) &
-        (simulation_data['game'] == selected_game) &
-        (simulation_data['episode'] <= max_episode)
-    ]
+    df = processed_data[selected_game]["joint_actions"]
     if df.empty:
-        return px.imshow(np.zeros((2,2)), text_auto=True, title="No Data Available")
-    # Pivot the data: each trial and episode should have two rows (one per agent).
-    pivot = df.pivot_table(index=['experiment', 'trial', 'episode'], columns='agent_name', values='action', aggfunc='first').reset_index()
-    if pivot.shape[1] < 3:
-        return px.imshow(np.zeros((2,2)), text_auto=True, title="Not enough agent data")
-    # Assume the first two agent columns.
-    agent_cols = pivot.columns[3:5]
-    joint_actions = pivot[agent_cols]
-    actions = np.sort(df['action'].unique())
-    freq_matrix = np.zeros((len(actions), len(actions)))
-    for _, row in joint_actions.iterrows():
-        a1 = int(row[agent_cols[0]])
-        a2 = int(row[agent_cols[1]])
-        freq_matrix[a1, a2] += 1
-    if freq_matrix.sum() > 0:
-        freq_matrix = freq_matrix / freq_matrix.sum()
-    fig = px.imshow(freq_matrix, 
-                    labels=dict(x=agent_cols[1], y=agent_cols[0], color="Frequency"),
-                    x=[str(a) for a in actions],
-                    y=[str(a) for a in actions],
+        return px.imshow(np.zeros((2,2)), text_auto=True, title="No Joint Action Data Available")
+    df = df[df['experiment'] == selected_scenario]
+    if df.empty:
+        return px.imshow(np.zeros((2,2)), text_auto=True, title="No Data for Selected Experiment")
+    pivot = df.pivot(index='action_agent1', columns='action_agent2', values='frequency').fillna(0)
+    fig = px.imshow(pivot, text_auto=True, 
+                    labels=dict(x="Agent 2 Action", y="Agent 1 Action", color="Frequency"),
                     title="Joint Action Frequency Heatmap")
     fig.update_layout(template='plotly_dark')
     return fig
 
-# ------------------- Callback 5: Reward Distribution Chart -------------------
+# Callback 5: Reward Distribution Chart (using processed reward_distribution CSV)
 @app.callback(
     Output('reward-distribution-chart', 'figure'),
     [Input('scenario-dropdown', 'value'),
@@ -254,20 +206,19 @@ def update_heatmap(selected_scenario, selected_game, max_episode):
      Input('episodes-slider', 'value')]
 )
 def update_reward_distribution(selected_scenario, selected_game, max_episode):
-    df = simulation_data[
-        (simulation_data['experiment'] == selected_scenario) &
-        (simulation_data['game'] == selected_game) &
-        (simulation_data['episode'] <= max_episode)
-    ]
+    df = processed_data[selected_game]["reward_distribution"]
     if df.empty:
-        return px.box(title="No Data Available")
-    fig = px.box(df, x='agent_name', y='reward', points="all",
-                 labels={'reward': 'Reward', 'agent_name': 'Agent'},
+        return px.box(title="No Reward Distribution Data Available")
+    df = df[(df['experiment'] == selected_scenario) & (df['episode'] <= max_episode)]
+    if df.empty:
+        return px.box(title="No Data for Selected Experiment")
+    fig = px.box(df, x='agent_name', y='mean_reward', points="all",
+                 labels={'mean_reward': 'Mean Reward', 'agent_name': 'Agent'},
                  title="Reward Distribution")
     fig.update_layout(template='plotly_dark')
     return fig
 
-# ------------------- Callback 6: Epsilon Decay Chart -------------------
+# Callback 6: Epsilon Decay Chart (using processed epsilon_decay CSV)
 @app.callback(
     Output('epsilon-decay-chart', 'figure'),
     [Input('scenario-dropdown', 'value'),
@@ -275,15 +226,13 @@ def update_reward_distribution(selected_scenario, selected_game, max_episode):
      Input('episodes-slider', 'value')]
 )
 def update_epsilon_decay(selected_scenario, selected_game, max_episode):
-    df = simulation_data[
-        (simulation_data['experiment'] == selected_scenario) &
-        (simulation_data['game'] == selected_game) &
-        (simulation_data['episode'] <= max_episode)
-    ]
-    if df.empty or 'epsilon' not in df.columns:
+    df = processed_data[selected_game]["epsilon_decay"]
+    if df.empty:
         return px.line(title="No Epsilon Data Available")
-    avg_eps = df.groupby(['agent_name', 'episode'], as_index=False)['epsilon'].mean()
-    fig = px.line(avg_eps, x='episode', y='epsilon', color='agent_name',
+    df = df[(df['experiment'] == selected_scenario) & (df['episode'] <= max_episode)]
+    if df.empty:
+        return px.line(title="No Data for Selected Experiment")
+    fig = px.line(df, x='episode', y='epsilon', color='agent_name',
                   labels={'epsilon': 'Epsilon', 'episode': 'Episode'},
                   title='Epsilon Decay Over Episodes')
     fig.update_layout(template='plotly_dark')
