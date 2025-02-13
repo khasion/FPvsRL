@@ -348,7 +348,7 @@ def pad_and_average(time_series_list):
 # Global parameters.
 n_actions = 2
 n_states = 1  # Only one state.
-episodes = 2000
+episodes = 1000
 trials = 5
 
 # Parameters for each agent type.
