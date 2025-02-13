@@ -27,6 +27,8 @@ Make sure to install the required packages:
 """
 
 import numpy as np
+import pandas as pd
+import json
 import matplotlib.pyplot as plt
 from scipy.optimize import linprog
 import seaborn as sns
@@ -387,6 +389,7 @@ experiments = [
 ############################################
 # Loop over Experiments and Produce Plots
 ############################################
+"""
 for exp in experiments:
     exp_name = exp["name"]
     label1, label2 = exp["labels"]
@@ -597,5 +600,61 @@ for exp in experiments:
         plt.close()
     
     print(f"Experiment {exp_name} completed. Plots saved in '{output_dir}' directory.\n")
+"""
+# List to hold one row per episode for each experiment and trial.
+export_rows = []
 
-print("All experiments and plots are complete.")
+for exp in experiments:
+    exp_name = exp["name"]
+    # Run the simulation for this experiment.
+    results = run_simulation(exp["agent1"], exp["agent2"],
+                             exp["params1"], exp["params2"],
+                             StochasticRPSGame, episodes=episodes, trials=trials)
+    
+    # Loop over each trial.
+    for t in range(trials):
+        rewards1 = results['rewards_agent1'][t]
+        rewards2 = results['rewards_agent2'][t]
+        cum1 = results['cum_scores_agent1'][t]
+        cum2 = results['cum_scores_agent2'][t]
+        states = results['states'][t]
+        joint_actions = results['joint_actions'][t]
+        
+        # Extra info: these might be None if the agent doesn't record them.
+        extra1 = results['extra_info_agent1'][t]
+        extra2 = results['extra_info_agent2'][t]
+        policy1_history = extra1['policy_history'] if extra1['policy_history'] is not None else [None]*episodes
+        epsilon1_history = extra1['epsilon_history'] if extra1['epsilon_history'] is not None else [None]*episodes
+        policy2_history = extra2['policy_history'] if extra2['policy_history'] is not None else [None]*episodes
+        epsilon2_history = extra2['epsilon_history'] if extra2['epsilon_history'] is not None else [None]*episodes
+
+        # For each episode in this trial, record a row.
+        for ep in range(episodes):
+            row = {
+                "experiment": exp_name,
+                "trial": t,
+                "episode": ep,
+                "agent1": joint_actions[ep][0],
+                "agent2": joint_actions[ep][1],
+                "reward_agent1": rewards1[ep],
+                "reward_agent2": rewards2[ep],
+                "cumulative_score_agent1": cum1[ep],
+                "cumulative_score_agent2": cum2[ep],
+                "environment_state": states[ep],
+                # Convert lists/arrays to JSON strings for easier visualization later.
+                "policy_distribution_agent1": json.dumps(policy1_history[ep].tolist()) if policy1_history[ep] is not None else None,
+                "policy_distribution_agent2": json.dumps(policy2_history[ep].tolist()) if policy2_history[ep] is not None else None,
+                "epsilon_agent1": epsilon1_history[ep],
+                "epsilon_agent2": epsilon2_history[ep],
+                # q_values: not recorded per episode in your simulation.
+                "q_values_agent1": None,
+                "q_values_agent2": None,
+            }
+            export_rows.append(row)
+
+# Convert the list of rows into a DataFrame and export it.
+df_export = pd.DataFrame(export_rows)
+df_export.to_csv("rps_simulation_data.csv", index=False)
+print("Exported data to 'rps_simulation_data.csv'")
+
+print("All experiments are complete.")
