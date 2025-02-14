@@ -2,17 +2,17 @@
 """
 Comparison of All Pairwise Combinations of Agents in Repeated Matching Pennies
 
-This script defines a non–stochastic Matching Pennies game and four agent types:
+This script defines a non-stochastic Matching Pennies game and four agent types:
     - Fictitious Play (FP)
-    - Q–Learning (QL)
+    - Q-Learning (QL)
     - Minimax RL (MM)
-    - Belief–Based (BP)
+    - Belief-Based (BP)
 
 The game is repeated with a fixed payoff matrix:
     For the row (player 1), the payoff matrix is:
          [[ 1, -1],
           [-1,  1]]
-    (Player 2’s payoff is the negative of player 1’s.)
+    (Player 2's payoff is the negative of player 1's.)
 
 Each experiment runs a match between two agents over many episodes and trials.
 For every pairwise combination, we produce the following plots:
@@ -23,8 +23,8 @@ For every pairwise combination, we produce the following plots:
     e. Reward Distribution (with error bars)
 And, when available:
     f. Policy Evolution (for agents that record a strategy, e.g. FP)
-    g. Epsilon Decay (for agents using ε–greedy, e.g. QL and MM)
-    h. Q–Value Evolution and Convergence
+    g. Epsilon Decay (for agents using ε-greedy, e.g. QL and MM)
+    h. Q-Value Evolution and Convergence
 
 Plots are saved in the "mp-plots" folder.
 Processed data (i.e. the exact data used to produce the plots) are exported as CSV files.
@@ -46,14 +46,14 @@ output_dir = "mp-plots"
 os.makedirs(output_dir, exist_ok=True)
 
 ############################################
-# Environment: Matching Pennies Game (Non–stochastic)
+# Environment: Matching Pennies Game (Non-stochastic)
 ############################################
 class MatchingPenniesGame:
     def __init__(self):
         # A dummy state (always 0) because the game is fixed.
         self.current_state = 0
         # Fixed payoff matrix for the row (player 1):
-        # If actions match, row gets +1; if not, row gets –1.
+        # If actions match, row gets +1; if not, row gets -1.
         self.payoff_matrix = np.array([[ 1, -1],
                                        [-1,  1]])
         
@@ -91,7 +91,7 @@ class FictitiousPlayAgent:
         self.strategy = self.history / np.sum(self.history)
         self.strategy_history.append(self.strategy.copy())
 
-# 2. Q–Learning Agent (QL)
+# 2. Q-Learning Agent (QL)
 class QLearningAgent:
     def __init__(self, n_actions, n_states, alpha=0.1, gamma=0.9,
                  epsilon=1.0, epsilon_decay=0.9995, epsilon_min=0.1):
@@ -102,7 +102,7 @@ class QLearningAgent:
         self.epsilon = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
-        # Q–table: for each state, a vector (one value per action)
+        # Q-table: for each state, a vector (one value per action)
         self.q_table = {state: np.zeros(n_actions) for state in range(n_states)}
         self.q_history = {state: [] for state in range(n_states)}
         self.action_history = []
@@ -135,7 +135,7 @@ class MinimaxRLAgent:
         self.epsilon = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
-        # Q–table: for each state, a matrix (our actions x opponent actions)
+        # Q-table: for each state, a matrix (our actions x opponent actions)
         self.q_table = {state: np.zeros((n_actions, n_actions)) for state in range(n_states)}
         self.q_history = {state: [] for state in range(n_states)}
         self.action_history = []
@@ -157,7 +157,7 @@ class MinimaxRLAgent:
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
         self.epsilon_history.append(self.epsilon)
 
-# 4. Belief–Based Agent (BP)
+# 4. Belief-Based Agent (BP)
 class BeliefBasedAgent:
     def __init__(self, n_actions, payoff_matrices):
         self.n_actions = n_actions
@@ -186,7 +186,7 @@ class BeliefBasedAgent:
 ############################################
 def solve_minimax(Q_mat):
     """
-    Given a Q–matrix (n_actions x n_actions) for a zero–sum stage game,
+    Given a Q-matrix (n_actions x n_actions) for a zero-sum stage game,
     solve for the minimax value and optimal mixed strategy.
 
     LP formulation:
@@ -227,14 +227,14 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
                    game_env_class, episodes=5000, trials=5):
     """
     Run a match between two agents over many episodes and trials.
-    (Even though the game is repeated and non–stochastic, we still use a state parameter.)
+    (Even though the game is repeated and non-stochastic, we still use a state parameter.)
     
     Records for each trial:
       - Episode rewards and cumulative scores
       - Environment state sequence
       - Joint actions
       - Extra info (e.g. strategy history, epsilon history, belief history)
-      - Per–episode Q–values (if available)
+      - Per-episode Q-values (if available)
     Returns a dictionary with the collected data.
     """
     rewards_agent1_trials = []
@@ -245,8 +245,8 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
     joint_actions_trials = []
     extra_info_agent1_trials = []
     extra_info_agent2_trials = []
-    q_values_agent1_trials = []  # Record per–episode Q–values for agent1.
-    q_values_agent2_trials = []  # Record per–episode Q–values for agent2.
+    q_values_agent1_trials = []  # Record per-episode Q-values for agent1.
+    q_values_agent2_trials = []  # Record per-episode Q-values for agent2.
     
     for t in range(trials):
         env = game_env_class()
@@ -259,7 +259,7 @@ def run_simulation(agent1_class, agent2_class, agent1_params, agent2_params,
         cum_scores2 = []
         states = []
         joint_actions = []
-        q_values1 = []  # For agent1: record Q–table snapshot per episode.
+        q_values1 = []  # For agent1: record Q-table snapshot per episode.
         q_values2 = []  # For agent2.
         
         extra1 = {
@@ -376,18 +376,20 @@ bp_params = {'n_actions': n_actions, 'payoff_matrices': {0: mp_payoff_matrix}}
 
 experiments = [
     {"name": "fp_vs_ql", "agent1": FictitiousPlayAgent, "agent2": QLearningAgent,
-     "params1": fp_params, "params2": ql_params, "labels": ("Fictitious Play", "Q–Learning")},
+     "params1": fp_params, "params2": ql_params, "labels": ("Fictitious Play", "Q-Learning")},
     {"name": "fp_vs_bp", "agent1": FictitiousPlayAgent, "agent2": BeliefBasedAgent,
-     "params1": fp_params, "params2": bp_params, "labels": ("Fictitious Play", "Belief–Based")},
+     "params1": fp_params, "params2": bp_params, "labels": ("Fictitious Play", "Belief-Based")},
     {"name": "ql_vs_mm", "agent1": QLearningAgent, "agent2": MinimaxRLAgent,
-     "params1": ql_params, "params2": mm_params, "labels": ("Q–Learning", "Minimax RL")},
+     "params1": ql_params, "params2": mm_params, "labels": ("Q-Learning", "Minimax RL")},
     {"name": "fp_vs_mm", "agent1": FictitiousPlayAgent, "agent2": MinimaxRLAgent,
      "params1": fp_params, "params2": mm_params, "labels": ("Fictitious Play", "Minimax RL")},
     {"name": "ql_vs_bp", "agent1": QLearningAgent, "agent2": BeliefBasedAgent,
-     "params1": ql_params, "params2": bp_params, "labels": ("Q–Learning", "Belief–Based")},
+     "params1": ql_params, "params2": bp_params, "labels": ("Q-Learning", "Belief-Based")},
     {"name": "mm_vs_bp", "agent1": MinimaxRLAgent, "agent2": BeliefBasedAgent,
-     "params1": mm_params, "params2": bp_params, "labels": ("Minimax RL", "Belief–Based")},
+     "params1": mm_params, "params2": bp_params, "labels": ("Minimax RL", "Belief-Based")},
 ]
+
+total_wins = {"Fictitious Play": 0, "Q-Learning": 0, "Minimax RL": 0, "Belief-Based": 0}
 
 ############################################
 # Loop over Experiments: Generate Plots and Collect Processed Data
@@ -611,7 +613,7 @@ for exp in tqdm(experiments, desc="Processing Experiments"):
                 'epsilon': eps
             })
     
-    # (h) Q–Value Evolution and Convergence (if available)
+    # (h) Q-Value Evolution and Convergence (if available)
     if 'q_values_agent1' in results and any(q is not None for q in results['q_values_agent1'][0]):
         q_history_list = results['q_values_agent1']
         max_values_list = []
@@ -640,8 +642,8 @@ for exp in tqdm(experiments, desc="Processing Experiments"):
         avg_max_values = pad_and_average(max_values_list)
         avg_norm_diff = pad_and_average(norm_diff_list)
         plt.figure(figsize=(12,6))
-        plt.plot(avg_max_values, label=f"{label1} Q–Value")
-        plt.title(f"Q–Value Evolution ({label1})")
+        plt.plot(avg_max_values, label=f"{label1} Q-Value")
+        plt.title(f"Q-Value Evolution ({label1})")
         plt.xlabel("Update Index (episodes)")
         plt.ylabel("Value")
         plt.legend()
@@ -649,7 +651,7 @@ for exp in tqdm(experiments, desc="Processing Experiments"):
         plt.close()
         plt.figure(figsize=(12,6))
         plt.plot(avg_norm_diff)
-        plt.title(f"Q–Value Convergence ({label1})")
+        plt.title(f"Q-Value Convergence ({label1})")
         plt.xlabel("Update Index (episodes)")
         plt.ylabel("Norm Difference")
         plt.savefig(os.path.join(output_dir, f"{exp_name}_{label1.replace(' ', '_').lower()}_qvalue_convergence.png"))
@@ -696,8 +698,8 @@ for exp in tqdm(experiments, desc="Processing Experiments"):
         avg_max_values = pad_and_average(max_values_list)
         avg_norm_diff = pad_and_average(norm_diff_list)
         plt.figure(figsize=(12,6))
-        plt.plot(avg_max_values, label=f"{label2} Q–Value")
-        plt.title(f"Q–Value Evolution ({label2})")
+        plt.plot(avg_max_values, label=f"{label2} Q-Value")
+        plt.title(f"Q-Value Evolution ({label2})")
         plt.xlabel("Update Index (episodes)")
         plt.ylabel("Value")
         plt.legend()
@@ -705,7 +707,7 @@ for exp in tqdm(experiments, desc="Processing Experiments"):
         plt.close()
         plt.figure(figsize=(12,6))
         plt.plot(avg_norm_diff)
-        plt.title(f"Q–Value Convergence ({label2})")
+        plt.title(f"Q-Value Convergence ({label2})")
         plt.xlabel("Update Index (episodes)")
         plt.ylabel("Norm Difference")
         plt.savefig(os.path.join(output_dir, f"{exp_name}_{label2.replace(' ', '_').lower()}_qvalue_convergence.png"))
@@ -725,7 +727,32 @@ for exp in tqdm(experiments, desc="Processing Experiments"):
                 'norm_diff': val
             })
     
+    # --- Compute wins for this experiment ---
+    # For each trial, compare final cumulative scores.
+    for trial in range(trials):
+        final_score1 = results['cum_scores_agent1'][trial][-1]
+        final_score2 = results['cum_scores_agent2'][trial][-1]
+        if final_score1 > final_score2:
+            total_wins[label1] += 1
+        elif final_score2 > final_score1:
+            total_wins[label2] += 1
+        # Ties are not counted.
+
     print(f"Experiment {exp_name} completed. Plots saved in '{output_dir}' directory.\n")
+
+############################################
+# Plot Total Wins Bar Chart (Tournament Winner)
+############################################
+plt.figure(figsize=(8,6))
+agents = list(total_wins.keys())
+wins = list(total_wins.values())
+plt.bar(agents, wins, color=['blue', 'green', 'red', 'purple'])
+plt.title("Total Wins per Agent in Tournament")
+plt.xlabel("Agent")
+plt.ylabel("Wins")
+plt.savefig(os.path.join(output_dir, "total_wins.png"))
+plt.close()
+print("Total wins bar plot saved as 'total_wins.png'.")
 
 ############################################
 # Export Processed Data to CSV Files
