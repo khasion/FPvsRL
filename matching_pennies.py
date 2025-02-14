@@ -6,7 +6,7 @@ This script defines a non-stochastic Matching Pennies game and four agent types:
     - Fictitious Play (FP)
     - Q-Learning (QL)
     - Minimax RL (MM)
-    - Belief-Based (BP)
+    - Belief-Based (BB)
 
 The game is repeated with a fixed payoff matrix:
     For the row (player 1), the payoff matrix is:
@@ -157,7 +157,7 @@ class MinimaxRLAgent:
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
         self.epsilon_history.append(self.epsilon)
 
-# 4. Belief-Based Agent (BP)
+# 4. Belief-Based Agent (BB)
 class BeliefBasedAgent:
     def __init__(self, n_actions, payoff_matrices):
         self.n_actions = n_actions
@@ -372,21 +372,21 @@ mm_params = {'n_actions': n_actions, 'n_states': n_states,
              'epsilon_decay': 0.9995, 'epsilon_min': 0.1}
 mp_payoff_matrix = np.array([[ 1, -1],
                              [-1,  1]])
-bp_params = {'n_actions': n_actions, 'payoff_matrices': {0: mp_payoff_matrix}}
+bb_params = {'n_actions': n_actions, 'payoff_matrices': {0: mp_payoff_matrix}}
 
 experiments = [
     {"name": "fp_vs_ql", "agent1": FictitiousPlayAgent, "agent2": QLearningAgent,
      "params1": fp_params, "params2": ql_params, "labels": ("Fictitious Play", "Q-Learning")},
-    {"name": "fp_vs_bp", "agent1": FictitiousPlayAgent, "agent2": BeliefBasedAgent,
-     "params1": fp_params, "params2": bp_params, "labels": ("Fictitious Play", "Belief-Based")},
+    {"name": "fp_vs_bb", "agent1": FictitiousPlayAgent, "agent2": BeliefBasedAgent,
+     "params1": fp_params, "params2": bb_params, "labels": ("Fictitious Play", "Belief-Based")},
     {"name": "ql_vs_mm", "agent1": QLearningAgent, "agent2": MinimaxRLAgent,
      "params1": ql_params, "params2": mm_params, "labels": ("Q-Learning", "Minimax RL")},
     {"name": "fp_vs_mm", "agent1": FictitiousPlayAgent, "agent2": MinimaxRLAgent,
      "params1": fp_params, "params2": mm_params, "labels": ("Fictitious Play", "Minimax RL")},
-    {"name": "ql_vs_bp", "agent1": QLearningAgent, "agent2": BeliefBasedAgent,
-     "params1": ql_params, "params2": bp_params, "labels": ("Q-Learning", "Belief-Based")},
-    {"name": "mm_vs_bp", "agent1": MinimaxRLAgent, "agent2": BeliefBasedAgent,
-     "params1": mm_params, "params2": bp_params, "labels": ("Minimax RL", "Belief-Based")},
+    {"name": "ql_vs_bb", "agent1": QLearningAgent, "agent2": BeliefBasedAgent,
+     "params1": ql_params, "params2": bb_params, "labels": ("Q-Learning", "Belief-Based")},
+    {"name": "mm_vs_bb", "agent1": MinimaxRLAgent, "agent2": BeliefBasedAgent,
+     "params1": mm_params, "params2": bb_params, "labels": ("Minimax RL", "Belief-Based")},
 ]
 
 total_wins = {"Fictitious Play": 0, "Q-Learning": 0, "Minimax RL": 0, "Belief-Based": 0}

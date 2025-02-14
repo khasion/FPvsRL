@@ -9,16 +9,12 @@
 \geometry{margin=1in}
 
 \title{Fictitious Play and Reinforcement Learning for Computing Equilibria in Repeated Zero-Sum Games}
-\author{Your Name \\ Your Institution \\ \texttt{your.email@example.com}}
+\author{Ioannis Kasionis \and Ioannis Koutsoukis}
 \date{\today}
 
 \begin{document}
 
 \maketitle
-
-\begin{abstract}
-This project investigates computational approaches to compute equilibria in repeated zero-sum games. We compare Fictitious Play with several reinforcement learning techniques, including Q-Learning, Minimax Reinforcement Learning, and Belief-Based methods, in the context of two canonical games: stochastic Rock-Paper-Scissors (RPS) and Matching Pennies (MP). The study combines theoretical analysis with extensive simulations. Results are visualized through various performance metrics, such as cumulative scores, convergence behavior, policy evolution, and joint action frequency. Our findings highlight differences in convergence speed, learning stability, and the impact of stochastic environments.
-\end{abstract}
 
 \section{Introduction}
 The computation of equilibria in games is a central problem in game theory and multi-agent systems. Repeated zero-sum games, where the gain of one player is exactly balanced by the loss of the other, provide an ideal test-bed for studying learning dynamics in adversarial settings. In this work, we explore iterative learning algorithms that allow players to converge toward equilibrium strategies without requiring complete analytical solutions. We focus on comparing Fictitious Play (FP) with reinforcement learning (RL) methods—including Q-Learning, Minimax RL, and Belief-Based approaches—in two well-known games: Rock-Paper-Scissors and Matching Pennies.
@@ -59,46 +55,216 @@ Experiments were conducted by pitting every pair of the four agents (FP, QL, Min
 The simulation results were exported to CSV files and subsequently visualized using an interactive Python Dash dashboard.
 
 \section{Results \& Discussion}
+\label{sec:results-discussion}
 
-\subsection{Convergence of Different Approaches}
-The convergence behavior of the different algorithms varied considerably. Fictitious Play exhibited smooth convergence to the Nash equilibrium, while RL methods (Q-Learning and Minimax RL) showed higher variance and occasional oscillatory behavior before stabilization. Belief-Based methods benefited from prior knowledge of the payoff matrix and converged relatively fast.
+This section presents our experimental findings for two zero-sum games: 
+Rock--Paper--Scissors (RPS) and Matching Pennies (MP). We analyze each 
+pairwise agent matchup with respect to policy evolution, joint action 
+frequencies, Q-value convergence, and cumulative scores. Figures 
+throughout this section illustrate how different learning algorithms 
+adapt and either converge to equilibrium play or systematically exploit 
+an opponent.
 
-\subsection{Comparative Performance in Stochastic RPS}
-In the stochastic RPS environment, average cumulative scores indicated that FP and Belief-Based agents performed similarly, consistently approaching equilibrium strategies. In contrast, Q-Learning and Minimax RL displayed slower convergence with higher variance, highlighting the challenges posed by the stochastic transitions between states.
+\subsection{Rock--Paper--Scissors (RPS)}
 
-\subsection{Comparative Performance in Matching Pennies}
-For the fixed Matching Pennies game, all agents eventually converged to equilibrium strategies. However, differences in the speed of convergence and the transient performance were observed. RL methods required more episodes to stabilize due to exploration, while FP demonstrated rapid adaptation.
+\paragraph{Q-Value Convergence.}
+Rock--Paper--Scissors is a zero-sum game with a well-known mixed-strategy 
+Nash equilibrium (each action with probability $1/3$). 
+Figures~\ref{fig:rps-minimax-convergence} and~\ref{fig:rps-ql-convergence} 
+compare the norm difference between successive Q-tables for 
+Minimax RL and Q-Learning, respectively. Minimax RL quickly drives the 
+difference to near-zero, indicating stable Q-values. Q-Learning, however, 
+shows persistent fluctuations (a higher, noisy baseline), suggesting it 
+is continually adapting to a non-stationary opponent rather than 
+converging to a fixed solution.
 
-\subsection{Policy Evolution and Learning Stability}
-Visualizations of policy evolution revealed that FP maintained a steadily refining strategy distribution over episodes. In contrast, RL methods often underwent abrupt strategy changes due to the exploration-exploitation trade-off. The convergence charts of Q–values confirmed that RL methods eventually reduce exploitability, although at different rates.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{rps-plots/ql_vs_mm_minimax_rl_qvalue_convergence.png}
+    \caption{Q-Value Convergence for Minimax RL in RPS. The norm difference 
+    quickly drops to near-zero, reflecting fast convergence to an 
+    approximate equilibrium policy.}
+    \label{fig:rps-minimax-convergence}
+\end{figure}
 
-\subsection{Joint Action Frequency Analysis}
-Joint action frequency heatmaps provided insight into the interaction dynamics between agents. In equilibrium, the joint action distributions approached uniformity in RPS, consistent with the theoretical Nash equilibrium. In Matching Pennies, the distribution reflected the symmetric nature of the game, validating the robustness of the learning process.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{rps-plots/ql_vs_mm_q-learning_qvalue_convergence.png}
+    \caption{Q-Value Convergence for Q-Learning in RPS. The norm difference 
+    remains noisy and never fully settles, as Q-Learning continuously 
+    chases the opponent's changing strategy.}
+    \label{fig:rps-ql-convergence}
+\end{figure}
 
-\section{Conclusion}
-This project demonstrates that iterative learning methods can effectively compute equilibria in repeated zero-sum games. Fictitious Play offers stable and rapid convergence in many cases, while reinforcement learning methods—although initially more volatile—eventually yield robust strategies. The experiments underscore the significance of adapting learning algorithms to the game environment and reveal that stochasticity plays a critical role in determining convergence dynamics.
+\paragraph{Policy Evolution and Joint Action Frequencies.}
+Figure~\ref{fig:rps-fp-policy} shows how a Fictitious Play (FP) agent's 
+action probabilities evolve over time. In many trials, FP ends up near 
+the $1/3$-$1/3$-$1/3$ distribution, consistent with the RPS equilibrium. 
+Joint action frequency heatmaps 
+(e.g., Figure~\ref{fig:rps-joint-heatmap}) reveal that, for well-adapting 
+agents, each of the nine possible (Rock, Paper, Scissors) combinations 
+occurs with probability close to $1/9 \approx 0.11$. Small deviations 
+reflect finite sample effects, exploration, or local biases.
 
-\subsection*{Key Takeaways}
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{rps-plots/fp_vs_mm_fictitious_play_policy_evolution.png}
+    \caption{Fictitious Play policy evolution in RPS, showing action 
+    probabilities for Rock, Paper, and Scissors. The agent often converges 
+    near an even mix (one-third each).}
+    \label{fig:rps-fp-policy}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{rps-plots/fp_vs_mm_joint_actions.png}
+    \caption{Joint Action Frequency for a pairwise matchup in RPS. Each 
+    cell indicates how often (Action$_{A}$, Action$_{B}$) occurs. 
+    Probabilities around 0.11 per cell suggest near-uniform randomization.}
+    \label{fig:rps-joint-heatmap}
+\end{figure}
+
+\paragraph{Cumulative Scores.}
+Figure~\ref{fig:rps-fp-mm-cumulative} shows sample cumulative score traces 
+for different matchups. Some pairs (e.g., Minimax RL vs.\ Fictitious Play) 
+hover around zero or oscillate, indicating near-equilibrium play. Others 
+(e.g., Q-Learning vs.\ Belief-Based) exhibit diverging lines, meaning one 
+agent exploits the other over time. Such divergences imply that one 
+agent discovered a predictable bias in the opponent's actions and 
+adapted to exploit it Figure~\ref{fig:rps-ql-bb-cumulative}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{rps-plots/fp_vs_mm_cumulative.png}
+    \caption{Representative cumulative score evolution in RPS. When both 
+    agents learn robust mixed strategies, scores fluctuate near zero. 
+    Monotonic divergence implies one agent systematically exploits the other.}
+    \label{fig:rps-fp-mm-cumulative}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{rps-plots/ql_vs_bp_cumulative.png}
+    \caption{Representative cumulative score evolution in RPS. When one 
+    agent exploits the other over time. Such divergences imply that one 
+    agent discovered a predictable bias in the opponent's actions and 
+    adapted to exploit it.}
+    \label{fig:rps-ql-bb-cumulative}
+\end{figure}
+
+\subsection{Matching Pennies (MP)}
+
+Matching Pennies is another strictly competitive, zero-sum game but with 
+only two actions: Heads or Tails. The unique Nash equilibrium requires 
+each player to randomize 50--50.
+
+\paragraph{Q-Value Convergence.}
+Figures~\ref{fig:mp-minimax-convergence} and~\ref{fig:mp-ql-convergence} 
+again contrast Minimax RL vs.\ Q-Learning. Minimax RL converges quickly 
+to stable Q-values, while Q-Learning shows persistent norm-difference 
+oscillations. As in RPS, Q-Learning's inability to account for a 
+non-stationary opponent prevents it from ``locking in'' a stable solution.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{mp-plots/ql_vs_mm_minimax_rl_qvalue_convergence.png}
+    \caption{Q-Value Convergence for Minimax RL in Matching Pennies. The 
+    agent rapidly converges to an approximate 50--50 strategy.}
+    \label{fig:mp-minimax-convergence}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{mp-plots/ql_vs_mm_q-learning_qvalue_convergence.png}
+    \caption{Q-Value Convergence for Q-Learning in Matching Pennies. 
+    Norm differences remain higher and noisy, indicating ongoing 
+    adaptation to the opponent's shifting policy.}
+    \label{fig:mp-ql-convergence}
+\end{figure}
+
+\paragraph{Policy Evolution and Joint Frequencies.}
+Figures like~\ref{fig:mp-fp-policy} show how Fictitious Play in 
+Matching Pennies often approaches near 50--50 mixing if the opponent also 
+mixes effectively. However, if an opponent remains predictably biased 
+(e.g.\ Belief-Based with slow adaptation), Fictitious Play can lock in a 
+counter‐bias, leading to a skewed distribution. Joint action frequency 
+heatmaps, such as Figure~\ref{fig:mp-joint-heatmap}, reveal whether 
+agents are truly randomizing (near 0.25 per cell in a 2$\times$2 
+matchup) or getting stuck in more deterministic patterns.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{mp-plots/fp_vs_mm_fictitious_play_policy_evolution.png}
+    \caption{Fictitious Play policy evolution in Matching Pennies. 
+    Equilibrium demands 50\% Heads and 50\% Tails, but slight 
+    off-equilibrium biases can persist if the opponent remains 
+    predictable.}
+    \label{fig:mp-fp-policy}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{mp-plots/fp_vs_ql_joint_actions.png}
+    \caption{Joint Action Frequency in a 2$\times$2 (Heads/Tails) 
+    matchup. Ideal equilibrium mixing would yield 0.25 in each cell. 
+    Large deviations indicate that one or both agents are systematically 
+    favoring certain actions.}
+    \label{fig:mp-joint-heatmap}
+\end{figure}
+
+\paragraph{Cumulative Scores.}
+Figure~\ref{fig:mp-ql-bb-cumulative} and Figure~\ref{fig:mp-fp-mm-cumulative} shows sample cumulative score traces in 
+Matching Pennies. Because the game is strictly zero-sum, perfectly 
+randomizing players would average zero. However, if one agent fails to 
+correct a predictable pattern, the other agent’s cumulative score 
+diverges positively while the former’s drops. For instance, Q-Learning 
+often exploits slow‐adapting Belief-Based (resulting in a large positive 
+slope), whereas Minimax RL vs.\ an adaptive agent might hover around 
+zero or show moderate oscillations.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{mp-plots/ql_vs_bp_cumulative.png}
+    \caption{Cumulative scores in Matching Pennies. Large, monotonic 
+    separations imply one agent exploits the other's biased play. Near 
+    zero or oscillatory outcomes suggest both agents approximate the 
+    50--50 equilibrium.}
+    \label{fig:mp-ql-bb-cumulative}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.6\textwidth]{mp-plots/fp_vs_mm_cumulative.png}
+    \caption{Minimax RL vs.\ Fictitious Play hover around 
+    zero.}
+    \label{fig:mp-fp-mm-cumulative}
+\end{figure}
+
+\subsection{Overall Observations}
+
 \begin{itemize}
-    \item Iterative learning methods, such as FP and RL, are viable for computing equilibria in repeated zero-sum games.
-    \item Fictitious Play generally converges stably, whereas RL methods require careful tuning of exploration parameters.
-    \item The stochastic nature of an environment can significantly affect the speed and stability of convergence.
+    \item \textbf{Minimax RL} leverages the zero-sum nature of these 
+    games, converging quickly to near-equilibrium policies. 
+    \item \textbf{Q-Learning} exhibits persistent variability because 
+    it views the opponent as part of a non-stationary environment, 
+    preventing stable convergence in many runs.
+    \item \textbf{Fictitious Play} and \textbf{Belief-Based} can do 
+    well if the opponent is sufficiently predictable; otherwise, they 
+    may remain off-equilibrium and be exploited by more adaptive 
+    strategies.
+    \item When both agents effectively randomize near equilibrium 
+    (1/3 each in RPS or 1/2 each in MP), \emph{expected} cumulative 
+    scores hover around zero. 
+    \item Large divergences in cumulative scores generally mean one 
+    agent discovered and exploited the other's systematic bias.
 \end{itemize}
 
-\subsection*{Future Work}
-Future research directions include:
-\begin{itemize}
-    \item Extending the analysis to general-sum and multi-agent games.
-    \item Enhancing exploration strategies in RL to improve convergence rates.
-    \item Applying these learning methods to real-world scenarios characterized by high uncertainty and dynamic interactions.
-\end{itemize}
-
-\section*{References}
-\begin{enumerate}
-    \item Fudenberg, D. and Levine, D. K. (1998). \emph{The Theory of Learning in Games}. MIT Press.
-    \item Shapley, L. S. (1953). Stochastic Games. \emph{Proceedings of the National Academy of Sciences}, 39(10), 1095--1100.
-    \item Littman, M. L. (1994). Markov Games as a Framework for Multi-Agent Reinforcement Learning. In \emph{Machine Learning Proceedings 1994}, 157--163.
-    \item Busoniu, L., Babuska, R., and De Schutter, B. (2008). A Comprehensive Survey of Multi-agent Reinforcement Learning. \emph{IEEE Transactions on Systems, Man, and Cybernetics, Part C (Applications and Reviews)}, 38(2), 156--172.
-\end{enumerate}
+In summary, these plots confirm that specialized approaches like Minimax 
+RL quickly home in on robust mixed strategies in strictly competitive 
+games, while Q-Learning’s standard update rule struggles with the 
+non-stationarity introduced by another learning opponent. Agents like 
+Fictitious Play or Belief-Based may do quite well against certain 
+opponents but can be exploited if they fail to adapt to changing 
+opponent distributions.
 
 \end{document}

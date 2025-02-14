@@ -66,11 +66,11 @@ else:
 # Dictionary to map experiment names to agent labels.
 experiment_labels = {
     "fp_vs_ql": ("Fictitious Play", "Q–Learning"),
-    "fp_vs_bp": ("Fictitious Play", "Belief–Based"),
+    "fp_vs_bb": ("Fictitious Play", "Belief–Based"),
     "ql_vs_mm": ("Q–Learning", "Minimax RL"),
     "fp_vs_mm": ("Fictitious Play", "Minimax RL"),
-    "ql_vs_bp": ("Q–Learning", "Belief–Based"),
-    "mm_vs_bp": ("Minimax RL", "Belief–Based"),
+    "ql_vs_bb": ("Q–Learning", "Belief–Based"),
+    "mm_vs_bb": ("Minimax RL", "Belief–Based"),
 }
 
 # Initialize Dash app.
