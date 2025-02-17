@@ -16,43 +16,50 @@
 
 \maketitle
 
+\begin{abstract}
+This report presents a comparative study of learning agents in two-person zero-sum games. We explore both Fictitious Play (FP) and Reinforcement Learning (RL) methods, including Q-Learning, Minimax RL, and a Belief-Based approach. The experiments are carried out in two distinct games: a stochastic Rock-Paper-Scissors game and Matching Pennies. The results are analyzed and visualized, highlighting the performance, convergence behavior, and policy evolution of the agents.
+\end{abstract}
+    
 \section{Introduction}
-The computation of equilibria in games is a central problem in game theory and multi-agent systems. Repeated zero-sum games, where the gain of one player is exactly balanced by the loss of the other, provide an ideal test-bed for studying learning dynamics in adversarial settings. In this work, we explore iterative learning algorithms that allow players to converge toward equilibrium strategies without requiring complete analytical solutions. We focus on comparing Fictitious Play (FP) with reinforcement learning (RL) methods—including Q-Learning, Minimax RL, and Belief-Based approaches—in two well-known games: Rock-Paper-Scissors and Matching Pennies.
-
+Two-person zero-sum games provide a rich testbed for studying competitive behaviors and learning algorithms. This report investigates various learning approaches, including Fictitious Play (FP) and Reinforcement Learning (RL) techniques, applied to two well-known games: the stochastic Rock-Paper-Scissors (RPS) and Matching Pennies (MP). The goal is to compare the theoretical underpinnings, practical implementation, and experimental performance of each algorithm.
+    
 \section{Theoretical Background}
-
-\subsection{Repeated Zero-Sum Games}
-Repeated zero-sum games consist of a stage game that is played over several episodes. In each round, both players select actions simultaneously. The payoff for one player is the negative of the other player's payoff, ensuring that the total payoff sums to zero. The repetition of the game allows players to learn from past outcomes, adapt their strategies, and potentially converge to a Nash equilibrium or a minimax solution. These games serve as a foundational model for adversarial interactions in economics, security, and machine learning.
-
-\subsection{Learning Agents}
-Several learning algorithms have been proposed to compute equilibria in repeated games:
-\begin{itemize}
-    \item \textbf{Fictitious Play (FP):} Players assume that opponents will play according to the empirical frequency of their past actions. They then choose the best response to these beliefs.
-    \item \textbf{Q-Learning (QL):} An RL method where agents learn the expected utility of actions using a Q–table and update it iteratively via temporal difference learning.
-    \item \textbf{Minimax RL:} A variation of Q–Learning adapted for adversarial settings, where agents aim to maximize the minimum gain against a worst-case opponent.
-    \item \textbf{Belief-Based Methods:} Agents update probabilistic beliefs about the opponent's actions and choose their best response accordingly.
-\end{itemize}
-
+\subsection{Fictitious Play (FP)}
+Fictitious Play is an iterative algorithm where each player assumes that their opponent is playing a stationary strategy determined by the historical frequency of actions. At every iteration, a player best-responds to the empirical distribution of the opponent's past actions. FP has been shown to converge to Nash equilibrium in certain classes of games, although convergence is not guaranteed in all scenarios.
+    
+\subsection{Reinforcement Learning (RL)}
+Reinforcement Learning (RL) refers to a class of algorithms where agents learn to optimize their actions through trial and error, guided by reward signals. In the context of zero-sum games, RL algorithms aim to discover optimal policies that maximize expected rewards.
+    
+\subsubsection{Q-Learning}
+Q-Learning is an off-policy RL algorithm that learns a value function \( Q(s,a) \) representing the expected cumulative reward for taking action \( a \) in state \( s \) and following the optimal policy thereafter. The update rule is given by:
+\[
+Q(s,a) \leftarrow Q(s,a) + \alpha \left[ r + \gamma \max_{a'} Q(s',a') - Q(s,a) \right]
+\]
+where \( \alpha \) is the learning rate and \( \gamma \) is the discount factor.
+    
+\subsubsection{Minimax RL}
+Minimax RL extends traditional Q-Learning to competitive settings by solving a minimax problem at each stage. In zero-sum games, each agent computes a mixed strategy by solving a linear program, ensuring robust performance against an adversarial opponent.
+    
+\subsubsection{Belief-Based Learning}
+The Belief-Based approach assumes that agents have prior knowledge of the payoff matrix. They update their beliefs about the opponent’s strategy based on observed actions and select actions that maximize their expected payoff accordingly.
+    
 \section{Implementation}
-
-\subsection{Environment Setup}
-Two game environments were implemented in Python:
-\begin{itemize}
-    \item \textbf{Stochastic Rock-Paper-Scissors (RPS):} In this environment, the game is played in two states with different payoff matrices. A state transition function introduces stochasticity, altering the stage game dynamically.
-    \item \textbf{Matching Pennies (MP):} A non-stochastic repeated zero-sum game with a fixed payoff matrix, where the payoff for one player is the negative of the other.
+The algorithms were implemented in Python using a modular design. Two separate scripts were developed for the games:
+    
+\begin{itemize}[noitemsep]
+    \item \textbf{rock\_paper\_scissors.py}: Implements a stochastic Rock-Paper-Scissors game with two states and four agent types (FP, Q-Learning, Minimax RL, and Belief-Based).
+    \item \textbf{matching\_pennies.py}: Implements a non-stochastic Matching Pennies game with similar agent setups.
 \end{itemize}
-Each environment is encapsulated within a Python class that defines the state, payoff matrices, and state transition rules.
-
-\subsection{Experimental Design}
-Experiments were conducted by pitting every pair of the four agents (FP, QL, Minimax RL, Belief-Based) against each other in both game environments. For each experiment, multiple trials were executed, each spanning thousands of episodes. During these simulations, various performance metrics were recorded, including:
-\begin{itemize}
-    \item Moving average rewards.
-    \item Cumulative scores over episodes.
-    \item Q–value evolution and convergence.
-    \item Policy evolution and learning stability.
-    \item Joint action frequency.
+    
+Each script includes:
+\begin{itemize}[noitemsep]
+    \item \textbf{Agent Classes}: Separate classes encapsulate the behavior of each learning algorithm.
+    \item \textbf{Environment Dynamics}: The games are modeled with state transition rules (stochastic for RPS and fixed for MP) and payoff matrices.
+    \item \textbf{Simulation Function}: A simulation loop that runs multiple episodes and trials, recording rewards, cumulative scores, policy evolution, Q-value updates, and joint action frequencies.
+    \item \textbf{Plotting and Data Export}: The scripts generate plots (e.g., moving average rewards, cumulative scores, state evolution, joint action frequency heatmaps) and export processed data to CSV files.
 \end{itemize}
-The simulation results were exported to CSV files and subsequently visualized using an interactive Python Dash dashboard.
+    
+Additionally, a dashboard was built using \texttt{Dash} and \texttt{Plotly} to interactively visualize and compare experimental results.    
 
 \section{Results \& Discussion}
 \label{sec:results-discussion}
@@ -124,8 +131,8 @@ reflect finite sample effects, exploration, or local biases.
     \label{fig:rps-joint-heatmap}
 \end{figure}
 
-\paragraph{Cumulative Scores.}
-Figure~\ref{fig:rps-fp-mm-cumulative} shows sample cumulative score traces 
+\paragraph{Moving averages \& Cumulative Scores.}
+Figure~\ref{fig:rps-fp-mm-rewards} shows sample cumulative score traces 
 for different matchups. Some pairs (e.g., Minimax RL vs.\ Fictitious Play) 
 hover around zero or oscillate, indicating near-equilibrium play. Others 
 (e.g., Q-Learning vs.\ Belief-Based) exhibit diverging lines, meaning one 
@@ -135,16 +142,16 @@ adapted to exploit it Figure~\ref{fig:rps-ql-bb-cumulative}.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.6\textwidth]{rps-plots/fp_vs_mm_cumulative.png}
-    \caption{Representative cumulative score evolution in RPS. When both 
+    \includegraphics[width=0.6\textwidth]{rps-plots/fp_vs_mm_rewards.png}
+    \caption{Representative moving average score in RPS. When both 
     agents learn robust mixed strategies, scores fluctuate near zero. 
     Monotonic divergence implies one agent systematically exploits the other.}
-    \label{fig:rps-fp-mm-cumulative}
+    \label{fig:rps-fp-mm-rewards}
 \end{figure}
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.6\textwidth]{rps-plots/ql_vs_bp_cumulative.png}
+    \includegraphics[width=0.6\textwidth]{rps-plots/ql_vs_bb_cumulative.png}
     \caption{Representative cumulative score evolution in RPS. When one 
     agent exploits the other over time. Such divergences imply that one 
     agent discovered a predictable bias in the opponent's actions and 
@@ -212,8 +219,8 @@ matchup) or getting stuck in more deterministic patterns.
     \label{fig:mp-joint-heatmap}
 \end{figure}
 
-\paragraph{Cumulative Scores.}
-Figure~\ref{fig:mp-ql-bb-cumulative} and Figure~\ref{fig:mp-fp-mm-cumulative} shows sample cumulative score traces in 
+\paragraph{Moving Averages \& Cumulative Scores.}
+Figure~\ref{fig:mp-ql-bb-cumulative} and Figure~\ref{fig:mp-fp-mm-rewards} shows sample cumulative score traces in 
 Matching Pennies. Because the game is strictly zero-sum, perfectly 
 randomizing players would average zero. However, if one agent fails to 
 correct a predictable pattern, the other agent’s cumulative score 
@@ -224,7 +231,7 @@ zero or show moderate oscillations.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.6\textwidth]{mp-plots/ql_vs_bp_cumulative.png}
+    \includegraphics[width=0.6\textwidth]{mp-plots/ql_vs_bb_cumulative.png}
     \caption{Cumulative scores in Matching Pennies. Large, monotonic 
     separations imply one agent exploits the other's biased play. Near 
     zero or oscillatory outcomes suggest both agents approximate the 
@@ -234,10 +241,10 @@ zero or show moderate oscillations.
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.6\textwidth]{mp-plots/fp_vs_mm_cumulative.png}
+    \includegraphics[width=0.6\textwidth]{mp-plots/fp_vs_mm_rewards.png}
     \caption{Minimax RL vs.\ Fictitious Play hover around 
     zero.}
-    \label{fig:mp-fp-mm-cumulative}
+    \label{fig:mp-fp-mm-rewards}
 \end{figure}
 
 \subsection{Overall Observations}
